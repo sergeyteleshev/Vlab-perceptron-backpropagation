@@ -1,0 +1,8 @@
+<Response>
+  <CheckingResult id="1" Time="50" Result="1.00">
+    <!--it's ok-->
+  </CheckingResult>
+  <CheckingResult id="2" Time="51" Result="1.00">
+    <!--it's ok-->
+  </CheckingResult>
+</Response>

@@ -1,0 +1,23 @@
+<Request>
+    <Conditions>
+        <ConditionForCalculating Time="500">
+            <Input>
+    <!-- тест-тест-тест -->
+            </Input>
+        </ConditionForCalculating>
+    </Conditions>
+    <Instructions>
+<!-- тест-тест-тест2 -->
+    </Instructions>
+    <PreGenerated>
+        <Text>
+            <!-- тест-тест-тест2 -->
+        </Text>
+        <Code>
+            <!-- тест-тест-тест2 -->
+        </Code>
+        <Instructions>
+            <!-- тест-тест-тест2 -->
+        </Instructions>
+    </PreGenerated>
+</Request>

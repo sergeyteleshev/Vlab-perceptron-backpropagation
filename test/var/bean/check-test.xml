@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util
+       http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!-- ___________________ test1-checkRequest ___________________-->
+    <bean id="condition1-test1" class="rlcp.check.ConditionForChecking"
+          c:id="1"
+          c:time="5"
+          c:input="тест-тест-тест"
+          c:output="тест-тест-тест3"/>
+    <bean id="condition2-test1" class="rlcp.check.ConditionForChecking"
+          c:id="2"
+          c:time="5"
+          c:input="тест-тест-тест2"
+          c:output="тест-тест-тест2"/>
+
+    <util:list id="conditionList-test1" list-class="java.util.ArrayList">
+        <ref bean="condition1-test1"/>
+        <ref bean="condition2-test1"/>
+    </util:list>
+
+    <bean id="preGenerated-test1" class="rlcp.generate.GeneratingResult"
+          c:text="text"
+          c:code="code"
+          c:instructions="instructions"/>
+
+    <bean id="checkRequest-test1" class="rlcp.check.RlcpCheckRequestBody"
+          c:instructions="тест-тест-тест2"
+          c:conditionsList-ref="conditionList-test1"
+          c:preGenerated-ref="preGenerated-test1"/>
+
+
+
+    <!-- ___________________ test1-checkResponse ___________________-->
+    <bean id="checkingResult1-test1" class="rlcp.check.CheckingResult"
+          c:id="1"
+          c:time="51"
+          c:result="1.00"
+          c:output="it's ok"/>
+    <bean id="checkingResult2-test1" class="rlcp.check.CheckingResult"
+          c:id="2"
+          c:time="50"
+          c:result="1.00"
+          c:output="it's ok"/>
+
+    <util:list id="results-test1" list-class="java.util.ArrayList">
+        <ref bean="checkingResult1-test1"/>
+        <ref bean="checkingResult2-test1"/>
+    </util:list>
+
+    <bean id="checkResponse-test1" class="rlcp.check.RlcpCheckResponseBody"
+          c:checkResults-ref="results-test1"/>
+
+
+    <!-- ___________________ Map-testing ___________________-->
+    <util:map id="checkTest" map-class="java.util.HashMap" key-type="rlcp.check.RlcpCheckRequestBody"
+              value-type="rlcp.check.RlcpCheckResponseBody">
+        <entry key-ref="checkRequest-test1">
+            <ref bean="checkResponse-test1"/>
+        </entry>
+    </util:map>
+
+</beans>

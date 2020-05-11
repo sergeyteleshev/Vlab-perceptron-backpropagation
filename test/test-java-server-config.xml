@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+       <import resource="classpath:vlab/server_java/java-server-config.xml"/>
+       <import resource="var/bean/*.xml"/>
+
+
+       <bean id="url" class="java.lang.String">
+              <constructor-arg value="rlcp://user:user@127.0.0.1:3000"/>
+       </bean>
+
+       <bean id="testDir" class="java.lang.String">
+              <constructor-arg value="test#{systemProperties['file.separator']}var#{systemProperties['file.separator']}rlcp-xml"/>
+       </bean>
+
+</beans>

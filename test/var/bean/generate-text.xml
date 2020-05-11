@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util
+       http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!-- ___________________ test1-generateRequest ___________________-->
+    <bean id="generateRequest-test1" class="rlcp.generate.RlcpGenerateRequestBody"
+          c:condition="generating cond"/>
+
+    <!-- ___________________ test1-generateResponse ___________________-->
+    <bean id="generateResponse-test1" class="rlcp.generate.RlcpGenerateResponseBody"
+            c:text="text"
+            c:code="code"
+            c:instructions="instructions"/>
+
+    <!-- ___________________ test2-generateRequest ___________________-->
+    <bean id="generateRequest-test2" class="rlcp.generate.RlcpGenerateRequestBody"
+          c:condition="test2"/>
+
+    <!-- ___________________ test2-generateResponse ___________________-->
+    <bean id="generateResponse-test2" class="rlcp.generate.RlcpGenerateResponseBody"
+          c:text="text"
+          c:code="code"
+          c:instructions="instructions"/>
+
+    <!-- ___________________ Map-testing ___________________-->
+    <util:map id="generateTest" map-class="java.util.HashMap" key-type="rlcp.generate.RlcpGenerateRequestBody" value-type="rlcp.generate.RlcpGenerateResponseBody">
+        <entry key-ref="generateRequest-test1">
+            <ref bean="generateResponse-test1"/>
+        </entry>
+        <entry key-ref="generateRequest-test2">
+            <ref bean="generateResponse-test2"/>
+        </entry>
+    </util:map>
+
+</beans>

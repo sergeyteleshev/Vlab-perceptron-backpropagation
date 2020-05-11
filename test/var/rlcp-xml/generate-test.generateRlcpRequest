@@ -1,0 +1,9 @@
+<Request>
+  <Conditions>
+    <ConditionForGenerating>
+      <Input>
+        <!-- generating cond -->
+      </Input>
+    </ConditionForGenerating>
+  </Conditions>
+</Request>

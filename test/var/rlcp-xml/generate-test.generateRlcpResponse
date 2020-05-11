@@ -1,0 +1,13 @@
+<Response>
+  <GeneratingResult>
+    <Text> 
+      <!--text-->
+    </Text>
+    <Code> 
+      <!--code-->
+    </Code>
+    <Instructions> 
+      <!--instructions-->
+    </Instructions>
+  </GeneratingResult>
+</Response>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util
+       http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!-- ___________________ test1-calculateRequest ___________________-->
+    <bean id="preGenerated-test1" class="rlcp.generate.GeneratingResult"
+          c:text="text"
+          c:code="code"
+          c:instructions="instructions"/>
+
+    <bean id="calculateRequest-test1" class="rlcp.calculate.RlcpCalculateRequestBody"
+          c:instructions="тест-тест-тест2"
+          c:condition="тест-тест-тест"
+          c:preGenerated-ref="preGenerated-test1"/>
+
+    <!-- ___________________ test1-calculateResponse ___________________-->
+    <bean id="calculateResponse-test1" class="rlcp.calculate.RlcpCalculateResponseBody"
+            c:text="text"
+            c:code="code"/>
+
+    <!-- ___________________ Map-testing ___________________-->
+    <util:map id="calculateTest" map-class="java.util.HashMap" key-type="rlcp.calculate.RlcpCalculateRequestBody" value-type="rlcp.calculate.RlcpCalculateResponseBody">
+        <entry key-ref="calculateRequest-test1">
+            <ref bean="calculateResponse-test1"/>
+        </entry>
+    </util:map>
+</beans>

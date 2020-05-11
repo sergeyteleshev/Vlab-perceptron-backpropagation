@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LaboratoryFrames>
+	<FrameIndex Scheme="1" FrameID="1">
+		<LaboratoryFrame Name="Vega" TimeLimit="30" TimeScale="Minute" ShowTime="Yes" Language="ru">
+			<ToolIndex Scheme="1" ToolID="1"/>
+			<Data contentType="xhtml">Find signal in every neuron and calculate MSE of last one</Data>
+			<LaboratoryTestsGroups LaboratoryTestsGroupsID="1" LimitOnCollection="1800" LimitOnTest="1800" TimeScale="Second" URL="rlcp://user:user@127.0.0.1:3000" Weight="1" >
+				<LaboratoryTestsGroup LaboratoryTestsGroupID="1" Number="1" LimitOnTest="1800" TimeScale="Second" Weight="1" >
+					<LaboratoryTest TestID="1" LimitOnTest="1800" TimeScale="Second" Weight="1" >
+						<LaboratoryTestInput>
+							<!-- some -->
+						</LaboratoryTestInput>						
+						<LaboratoryTestOutput>
+							<!-- somw -->
+						</LaboratoryTestOutput>
+					</LaboratoryTest>
+				</LaboratoryTestsGroup>
+			</LaboratoryTestsGroups>
+			<Generator>
+				<ByDefault>
+					<Text>
+						<!-- Информация для отображения пользователю, если север ВЛ недоступен -->
+					</Text>
+					<Code>
+						<!-- Информация для лабораторной установки, если север ВЛ недоступен -->
+					</Code>
+					<Instructions>
+						<!-- Инструкции по проверки решения, если сервер ВЛ недоступен -->x
+					</Instructions>
+				</ByDefault>
+				<Algorithm>
+     					<!-- Инструкции для генерирования -->
+				</Algorithm>
+			</Generator>
+		</LaboratoryFrame>
+	</FrameIndex>
+</LaboratoryFrames>

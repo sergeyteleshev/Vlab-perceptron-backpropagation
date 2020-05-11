@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="vLab" default="run.test.server" basedir=".">
+    <description>Builds, tests, and runs the project vLab.</description>
+    <property file="build.properties"/>
+
+    <path id="classpath">
+        <pathelement path="${full.classpath}"/>
+        <fileset dir="${dir.reference.lib}">
+            <include name="**/*.jar"/>
+        </fileset>
+    </path>
+
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpath="${dir.reference.lib}/ant-contrib-1.0b3.jar"/>
+
+    <target name="javadoc" depends="javadoc.vl"/>
+
+    <target name="javadoc.vl" depends="clean.javadoc">
+        <javadoc sourcepath="${dir.reference.source.src}"
+                 destdir="${dir.reference.javadoc.src}"
+                 use="true"
+                 classpath="${full.classpath}"
+                 encoding="${project.encoding}"
+                 charset="${project.encoding}"/>
+    </target>
+
+    <target name="clean" depends="clean.temp,clean.dist,clean.build,clean.javadoc,clean.pure,clean.vltest"/>
+
+    <target name="clean.build">
+        <delete quiet="true" dir="${dir.reference.build}"/>
+    </target>
+
+    <target name="clean.pure">
+        <delete quiet="true" dir="${dir.reference.pure}"/>
+    </target>
+
+    <target name="clean.temp">
+        <delete quiet="true" dir="${dir.reference.temp}"/>
+    </target>
+
+    <target name="clean.javadoc">
+        <delete quiet="true" dir="${dir.reference.javadoc}"/>
+    </target>
+
+    <target name="clean.dist">
+        <delete quiet="true" dir="${dir.reference.dist}"/>
+    </target>
+
+    <target name="clean.vltest">
+        <delete quiet="true" dir="${dir.reference.vltestdist}"/>
+    </target>
+
+    <target name="clean.academicnt">
+        <delete quiet="true" dir="${dir.reference.academicntdist}"/>
+    </target>
+
+    <target name="make.pure" depends="clean">
+        <mkdir dir="${dir.reference.pure}"/>
+        <copy todir="${dir.reference.pure}">
+            <fileset dir=".">
+                <exclude name="${dir.reference.pure}"/>
+                <exclude name="nbproject*/**"/>
+                <exclude name=".idea/**"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="compile" depends="clean.build">
+        <mkdir dir="${dir.reference.build}"/>
+        <echo>${full.classpath}</echo>
+        <if>
+            <equals arg1="${dev.language}" arg2="java"/>
+            <then>
+                <javac srcdir="${dir.reference.source.src}/vlab"
+                       destdir="${dir.reference.build}"
+                       encoding="${project.encoding}"
+                       classpathref="classpath"
+                       excludes="server_js/**"/>
+                <copy todir="${dir.reference.build}">
+                    <fileset dir="${dir.reference.source.src}" includes="**/**.xml" excludes="**/*js*.xml"/>
+                </copy>
+
+                <javac srcdir="${dir.test}"
+                       destdir="${dir.reference.build}"
+                       encoding="${project.encoding}"
+                       includeantruntime="false"
+                       classpathref="classpath">
+                    <src path="${dir.test}"/>
+                    <exclude name="*Files*.java"/>
+                </javac>
+                <copy todir="${dir.reference.build}">
+                    <fileset dir="${dir.test}" includes="**/**.xml" excludes="**/*js*.xml"/>
+                </copy>
+            </then>
+            <elseif>
+                <equals arg1="${dev.language}" arg2="js"/>
+                <then>
+                    <javac srcdir="${dir.reference.source.src}/vlab/"
+                           destdir="${dir.reference.build}"
+                           encoding="${project.encoding}"
+                           includeantruntime="false"
+                           classpathref="classpath"
+                           excludes="server_java/**"/>
+                    <copy todir="${dir.reference.build}">
+                        <fileset dir="${dir.reference.source.src}" includes="**/**.xml" excludes="**/*java*.xml"/>
+                        <fileset dir="${dir.reference.source.src}" includes="**/**.js"/>
+                    </copy>
+
+                    <javac destdir="${dir.reference.build}"
+                           encoding="${project.encoding}"
+                           includeantruntime="false"
+                           classpathref="classpath">
+                        <src path="${dir.test}"/>
+                        <exclude name="*Beans*.java"/>
+                    </javac>
+                    <copy todir="${dir.reference.build}">
+                        <fileset dir="${dir.test}" includes="**.xml" excludes="*java*.xml"/>
+                        <fileset dir="${dir.test}" includes="**/**.*Request"/>
+                        <fileset dir="${dir.test}" includes="**/**.*Response"/>
+                    </copy>
+                </then>
+            </elseif>
+        </if>
+    </target>
+
+    <target name="make.server" depends="compile,clean.temp">
+        <path id="dist.classpath">
+            <fileset dir="${dir.reference.lib}">
+                <include name="**/*.jar"/>
+            </fileset>
+        </path>
+
+        <pathconvert property="manifest.classpath" pathsep=" ">
+            <path refid="dist.classpath"/>
+            <mapper>
+                <chainedmapper>
+                    <flattenmapper/>
+                    <globmapper from="*.jar" to="lib/*.jar"/>
+                </chainedmapper>
+            </mapper>
+        </pathconvert>
+
+        <copy todir="${dir.reference.dist.server}/lib">
+            <fileset dir="${dir.reference.lib}" includes="**/*.jar"/>
+        </copy>
+
+        <if>
+            <equals arg1="${dev.language}" arg2="java"/>
+            <then>
+                <jar destfile="${dir.reference.dist.server}/${dist.server.name}" basedir="${dir.reference.build}">
+                    <manifest>
+                        <attribute name="Main-Class" value="${tool.class.java}"/>
+                        <attribute name="Class-Path" value="${manifest.classpath}"/>
+                    </manifest>
+                </jar>
+            </then>
+            <elseif>
+                <equals arg1="${dev.language}" arg2="js"/>
+                <then>
+                    <jar destfile="${dir.reference.dist.server}/${dist.server.name}" basedir="${dir.reference.build}">
+                        <manifest>
+                            <attribute name="Main-Class" value="${tool.class.js}"/>
+                            <attribute name="Class-Path" value="${manifest.classpath}"/>
+                        </manifest>
+                    </jar>
+                </then>
+            </elseif>
+        </if>
+
+
+        <copy todir="${dir.reference.dist.server}">
+            <fileset dir="." includes="${dir.reference.rsc}/${config.name}.*"/>
+        </copy>
+
+        <copy todir="${dir.reference.dist.server}/${dir.reference.rsc}">
+            <fileset dir="${dir.reference.rsc}" includes="${dir.reference.resources.general}/**"/>
+            <fileset dir="${dir.reference.rsc}" includes="${dir.reference.resources.server}/**"/>
+        </copy>
+
+    </target>
+
+
+    <target name="make.vltest.zip" depends="clean.vltest, make.server, make.tool">
+        <mkdir dir="${dir.reference.temp}"/>
+
+        <copy todir="${dir.reference.temp}/server">
+            <fileset file="${dir.reference.dist.server}/${dist.server.name}"/>
+            <fileset dir="${dir.reference.dist.server}" includes="${dir.reference.lib}/**"/>
+            <fileset dir="${dir.reference.dist.server}" includes="${dir.reference.rsc}/**"/>
+        </copy>
+
+        <copy todir="${dir.reference.temp}/tool">
+            <fileset dir="${dir.reference.dist.tool}" includes="**/**"/>
+        </copy>
+
+        <mkdir dir="${dir.reference.temp}/frames"/>
+        <copy file="${dir.reference.rsc}/LaboratoryFrames.xml"
+              tofile="${dir.reference.temp}/frames/LaboratoryFrames.xml"/>
+
+        <echo file="${dir.reference.temp}/lab.desc" append="true">name=${ant.project.name}</echo>
+
+        <zip compress="false" destfile="${dir.reference.vltestdist}/${dist.vltest.name}"
+             basedir="${dir.reference.temp}"/>
+        <delete quiet="true" dir="${dir.reference.temp}"/>
+    </target>
+
+    <target name="run.test.server" depends="compile">
+        <junit printsummary="yes" haltonerror="yes" haltonfailure="yes" fork="yes">
+            <jvmarg value="-Dfile.encoding=UTF-8"/>
+            <formatter type="plain" usefile="false"/>
+            <classpath>
+                <fileset dir="${dir.reference.lib}">
+                    <include name="**/*.jar"/>
+                </fileset>
+                <pathelement path="${dir.reference.build}"/>
+            </classpath>
+            <batchtest fork="yes">
+                <fileset dir="${dir.reference.build}">
+                    <include name="*Tests.class"/>
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
+
+
+    <target name="injection.JS">
+        <basename file="${file.name}" property="nameJS"/>
+        <basename file="${dir.name}" property="dir"/>
+        <echo file="${temp.html}" append="true">&lt;script type="text/javascript" src="js/${dir}/${nameJS}"&gt;&lt;/script&gt;${line.separator}</echo>
+    </target>
+
+    <target name="injection.CSS">
+        <basename file="${file.name}" property="nameCSS"/>
+        <basename file="${dir.name}" property="dir"/>
+        <echo file="${temp.html}" append="true">
+            &lt;link rel="stylesheet" href="css/${dir}/${nameCSS}" type="text/css" /&gt;${line.separator}
+        </echo>
+    </target>
+
+    <target name="injection.file">
+        <delete quiet="true" file="${temp.html}"/>
+
+        <touch file="${temp.html}"/>
+
+        <echo file="${temp.html}" append="true">&lt;!DOCTYPE html&gt;
+            &lt;html&gt;
+            &lt;head&gt;
+            &lt;meta charset='utf-8'/&gt;
+            &lt;title&gt;ToolViewer&lt;/title&gt;
+        </echo>
+
+        <foreach target="injection.CSS" param="file.name">
+            <fileset dir="${dir.css.src}" casesensitive="yes">
+                <include name="lib/**/*.css"/>
+                <exclude name="dev/**/*.css"/>
+            </fileset>
+            <param name="dir.name" value="lib"/>
+        </foreach>
+
+        <foreach target="injection.CSS" param="file.name">
+            <fileset dir="${dir.css.src}" casesensitive="yes">
+                <include name="dev/**/*.css"/>
+                <exclude name="lib/**/*.css"/>
+            </fileset>
+            <param name="dir.name" value="dev"/>
+        </foreach>
+
+        <echo file="${temp.html}" append="true">
+            &lt;/head&gt;
+            &lt;body&gt;
+            &lt;div id="jsLab"&gt;&lt;/div&gt;
+            <!--&lt;div id="root"&gt;&lt;/div&gt;-->
+            <!--&lt;input type="text" value="genfake" id="preGeneratedCode"/&gt;-->
+            <!--&lt;input type="text" value="calcfake" id="calculatedCode"/&gt;-->
+            <!--&lt;input type="text" value="prevsolfake" id="previousSolution"/&gt;-->
+        </echo>
+
+        <foreach target="injection.JS" param="file.name">
+            <fileset dir="${dir.js.src}" casesensitive="yes">
+                <include name="lib/**/*.js"/>
+                <exclude name="dev/**/*.js"/>
+            </fileset>
+            <param name="dir.name" value="lib"/>
+        </foreach>
+
+        <foreach target="injection.JS" param="file.name">
+            <fileset dir="${dir.js.src}" casesensitive="yes">
+                <include name="dev/**/*.js"/>
+                <exclude name="lib/**/*.js"/>
+            </fileset>
+            <param name="dir.name" value="dev"/>
+        </foreach>
+
+        <echo file="${temp.html}" append="true">
+            &lt;script&gt;
+            Vlab.init()
+            &lt;/script&gt;
+            &lt;/body&gt;
+            &lt;/html&gt;
+        </echo>
+
+    </target>
+
+    <target name="make.tool" depends="compile,clean.temp,injection.file">
+        <copy todir="${dir.reference.dist.tool}">
+            <fileset dir="${dir.webapp.src}" includes="**/**"/>
+        </copy>
+        <!--<zip destfile="${dir.reference.dist.tool}/${dist.tool.name}" basedir="${dir.webapp.src}"/>-->
+    </target>
+
+    <target name="run.test.tool" depends="make.tool">
+        <property name="mydirectory" location="${dir.webapp.src}"/>
+        <script language="javascript"><![CDATA[
+    location = "file:///"+project.getProperty("mydirectory").toString().replaceAll("\\\\","/")+"/index.html";
+    java.awt.Desktop.getDesktop().browse(java.net.URI.create(location));
+]]>
+        </script>
+    </target>
+
+
+</project>

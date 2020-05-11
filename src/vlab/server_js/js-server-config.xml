@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="configPath" class="java.lang.String">
+        <constructor-arg value="rsc/ConfigServer.xml"/>
+    </bean>
+
+    <bean id="engineJS" class="java.lang.String">
+        <constructor-arg value="nashorn"/>
+    </bean>
+
+    <!--generate-->
+    <bean id="generateLoader" class="vlab.server_js.ConfigResources" init-method="init">
+        <property name="resource">
+            <value>generate/GenerateProcessorImpl.js</value>
+        </property>
+    </bean>
+    <bean id="generateFactory"
+          class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject">
+            <ref bean="generateLoader"/>
+        </property>
+        <property name="targetMethod" value="getResource"/>
+    </bean>
+    <bean id="generateProcessor"
+          class="rlcp.server.processor.factory.ScriptEngineFactory"
+          c:engineName-ref="engineJS"
+          c:file-ref="generateFactory"
+          c:clazz="rlcp.server.processor.generate.GenerateProcessor"/>
+    <!--calculate-->
+    <bean id="calculateLoader" class="vlab.server_js.ConfigResources" init-method="init">
+        <property name="resource">
+            <value>calculate/CalculateProcessorImpl.js</value>
+        </property>
+    </bean>
+    <bean id="calculateFactory"
+          class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject">
+            <ref bean="calculateLoader"/>
+        </property>
+        <property name="targetMethod" value="getResource"/>
+    </bean>
+    <bean id="calculateProcessor"
+          class="rlcp.server.processor.factory.ScriptEngineFactory"
+          c:engineName-ref="engineJS"
+          c:file-ref="calculateFactory"
+          c:clazz="rlcp.server.processor.calculate.CalculateProcessor"/>
+    <!--check-->
+    <bean id="checkLoader" class="vlab.server_js.ConfigResources" init-method="init">
+        <property name="resource">
+            <value>check/CheckProcessorImpl.js</value>
+        </property>
+    </bean>
+    <bean id="checkFactory"
+          class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject">
+            <ref bean="checkLoader"/>
+        </property>
+        <property name="targetMethod" value="getResource"/>
+    </bean>
+    <bean id="checkProcessor"
+          class="rlcp.server.processor.factory.ScriptEngineFactory"
+          c:engineName-ref="engineJS"
+          c:file-ref="checkFactory"
+          c:clazz="rlcp.server.processor.check.PreCheckResultAwareCheckProcessor"/>
+
+    <bean id="container"
+          class="rlcp.server.processor.factory.ProcessorFactoryContainer"
+          p:generateProcessorFactory-ref="generateProcessor"
+          p:calculateProcessorFactory-ref="calculateProcessor"
+          p:checkProcessorFactory-ref="checkProcessor"/>
+
+    <bean id="server"
+          class="rlcp.server.Server"
+          c:configPath-ref="configPath"
+          c:processorFactoryContainer-ref="container"/>
+
+</beans>

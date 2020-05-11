@@ -1,0 +1,34 @@
+<Request>
+  <Conditions>
+    <ConditionForChecking id="1" Time="5">
+      <Input>
+        <!--тест-тест-тест-->
+      </Input>
+      <Output>
+        <!--тест-тест-тест3-->
+      </Output>
+    </ConditionForChecking>
+    <ConditionForChecking id="2" Time="5">
+      <Input>
+        <!--тест-тест-тест2-->
+      </Input>
+      <Output>
+        <!--тест-тест-тест2-->
+      </Output>
+    </ConditionForChecking>
+  </Conditions>
+  <Instructions>
+    <!--тест-тест-тест2-->
+  </Instructions>
+  <PreGenerated>
+    <Text>
+      <!--text-->
+    </Text>
+    <Code>
+      <!--code-->
+    </Code>
+    <Instructions>
+      <!--instructions-->
+    </Instructions>
+  </PreGenerated>
+</Request>
