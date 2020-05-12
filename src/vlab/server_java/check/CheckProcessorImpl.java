@@ -67,7 +67,24 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         if(points == 1.0)
             comment += "Perfect!";
 
-        return new CheckingSingleConditionResult(BigDecimal.valueOf(points), comment);
+        double[] signalOutputArray = new double[nodesValue.length()];
+        double[] serverAnswerNeuronOutputSignalValue = getDoublerrayByKey(serverAnswer, "neuronOutputSignalValue");
+
+        for(int i = 0; i < signalOutputArray.length; i++)
+        {
+            if(i < Consts.inputNeuronsAmount)
+            {
+                signalOutputArray[i] = nodesValue.getDouble(i);
+            }
+            else
+            {
+                signalOutputArray[i] = serverAnswerNeuronOutputSignalValue[i - Consts.inputNeuronsAmount];
+            }
+        }
+
+        JSONObject test = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
+
+        return new CheckingSingleConditionResult(BigDecimal.valueOf(points), test.toString());
     }
 
     private static JSONArray jsonObjectToJsonArray(JSONObject jsonObject)
@@ -198,13 +215,14 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return Math.pow(1 - outputNeuronValue, 2) / 1;
     }
 
-    private static JSONArray getJSONArrayByKey(JSONArray arr, String key)
+    private static double[] getDoublerrayByKey(JSONArray arr, String key)
     {
-        JSONArray result = new JSONArray();
+        double[] result = new double[arr.length()];
 
         for(int i = 0; i < arr.length(); i++)
         {
-            result.put(i, arr.getJSONObject(i).getJSONArray(key));
+
+            result[i] = arr.getJSONObject(i).getDouble(key);
         }
 
         return result;
@@ -372,6 +390,66 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         serverAnswer.put("countedFormula", jsonCountedFormula);
 
         return serverAnswer;
+    }
+
+    private double[][] twoDimentionalJsonArrayToDouble(JSONArray arr)
+    {
+        double[][] result = new double[arr.length()][arr.getJSONArray(0).length()];
+
+        for(int i = 0; i < arr.length(); i++)
+        {
+            for(int j = 0; j < arr.getJSONArray(i).length(); j++)
+            {
+                result[i][j] = arr.getJSONArray(i).getDouble(j);
+            }
+        }
+
+        return result;
+    }
+
+    private ArrayList<Integer> findEdgesToNeuron(double[][] edges, int neuronIndex)
+    {
+        ArrayList<Integer> result = new ArrayList<>();
+
+        for(int i = 0; i < edges.length; i++)
+        {
+            if(edges[i][neuronIndex] > 0)
+            {
+                result.add(i);
+            }
+        }
+
+        return result;
+    }
+
+    private JSONObject backpropagation(double[] neuronOutputSignalValue, double[][] edgesWeight)
+    {
+        JSONObject result = new JSONObject();
+        double[] delta = new double[neuronOutputSignalValue.length];
+        double[] grad = new double[neuronOutputSignalValue.length];
+        double[][] deltaW = new double[edgesWeight.length][edgesWeight.length];
+        double E = 0.7;
+        double A = 0.3;
+
+        for(int i = 0; i < deltaW.length; i++)
+        {
+            for(int j = 0; j < deltaW[i].length; j++)
+            {
+                deltaW[i][j] = 0;
+            }
+        }
+
+        for(int i = neuronOutputSignalValue.length - 1; i >= 0; i--)
+        {
+            delta[i] = (1 - neuronOutputSignalValue[i]) * ((1 - neuronOutputSignalValue[i]) * neuronOutputSignalValue[i]);
+            grad[i] = neuronOutputSignalValue[i] * delta[i];
+            deltaW[i] =
+        }
+
+        result.put("neuronOutputSignalValue", neuronOutputSignalValue);
+        result.put("edgesWeight", edgesWeight);
+
+        return result;
     }
 
     @Override
