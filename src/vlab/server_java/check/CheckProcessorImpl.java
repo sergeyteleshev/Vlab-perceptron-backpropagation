@@ -85,7 +85,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         JSONObject test = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
         double newError = 0;
 
-        return new CheckingSingleConditionResult(BigDecimal.valueOf(points), test.toString() + " " + Double.toString(newError));
+        return new CheckingSingleConditionResult(BigDecimal.valueOf(points), test.toString());
     }
 
     private static JSONArray jsonObjectToJsonArray(JSONObject jsonObject)
@@ -439,25 +439,25 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             //esli eto posledniy sloy neyronov, to odna formula
             if(i + Consts.outputNeuronsAmount > neuronOutputSignalValue.length - 1)
             {
-                delta[i] = (1 - neuronOutputSignalValue[i]) * ((1 - neuronOutputSignalValue[i]) * neuronOutputSignalValue[i]);
+                delta[i] = doubleToTwoDecimal((1 - neuronOutputSignalValue[i]) * ((1 - neuronOutputSignalValue[i]) * neuronOutputSignalValue[i]));
             }
             else if (i < Consts.inputNeuronsAmount)
             {
                 for(int j = 0; j < connectedNeurons.size(); j++)
                 {
-                    grad[i][connectedNeurons.get(j)] = neuronOutputSignalValue[i] * delta[connectedNeurons.get(j)];
-                    deltaW[i][connectedNeurons.get(j)] = E * grad[i][connectedNeurons.get(j)];
-                    edgesWeight[i][connectedNeurons.get(j)] += deltaW[i][connectedNeurons.get(j)];
+                    grad[i][connectedNeurons.get(j)] = doubleToTwoDecimal(neuronOutputSignalValue[i] * delta[connectedNeurons.get(j)]);
+                    deltaW[i][connectedNeurons.get(j)] = doubleToTwoDecimal(E * grad[i][connectedNeurons.get(j)]);
+                    edgesWeight[i][connectedNeurons.get(j)] += doubleToTwoDecimal(deltaW[i][connectedNeurons.get(j)]);
                 }
             }
             else
             {
                 for(int j = 0; j < connectedNeurons.size(); j++)
                 {
-                    delta[i] = ((1 - neuronOutputSignalValue[i]) * neuronOutputSignalValue[i]) * edgesWeight[i][connectedNeurons.get(j)] * delta[connectedNeurons.get(j)];
-                    grad[i][connectedNeurons.get(j)] = neuronOutputSignalValue[i] * delta[connectedNeurons.get(j)];
-                    deltaW[i][connectedNeurons.get(j)] = E * grad[i][connectedNeurons.get(j)];
-                    edgesWeight[i][connectedNeurons.get(j)] += deltaW[i][connectedNeurons.get(j)];
+                    delta[i] = doubleToTwoDecimal(((1 - neuronOutputSignalValue[i]) * neuronOutputSignalValue[i]) * edgesWeight[i][connectedNeurons.get(j)] * delta[connectedNeurons.get(j)]);
+                    grad[i][connectedNeurons.get(j)] = doubleToTwoDecimal(neuronOutputSignalValue[i] * delta[connectedNeurons.get(j)]);
+                    deltaW[i][connectedNeurons.get(j)] = doubleToTwoDecimal(E * grad[i][connectedNeurons.get(j)]);
+                    edgesWeight[i][connectedNeurons.get(j)] += doubleToTwoDecimal(deltaW[i][connectedNeurons.get(j)]);
                 }
             }
         }

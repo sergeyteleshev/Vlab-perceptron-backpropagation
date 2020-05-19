@@ -587,47 +587,58 @@ function init_lab() {
 
         //Инициализация ВЛ
         init: function () {
+            const state = appInstance.state.updateState((state) => {
+                return {
+                    ...state,
+                    ...test_graph,
+                }
+            });
+
+            const root = document.getElementById('jsLab');
+
+            // основная функция для рендеринга
+            const render = (state) => {
+                console.log('state', state);
+                renderTemplate(root, getHTML({...state}));
+                renderDag(state, appInstance);
+                bindActionListeners(appInstance);
+            };
+
+            appInstance.subscriber.subscribe('render', render);
+
+            // инициализируем первую отрисовку
+            appInstance.subscriber.emit('render', appInstance.state.getState());
+
+
             if(document.getElementById("preGeneratedCode"))
             {
-                if(document.getElementById("preGeneratedCode").value !== "")
-                {
-                    const state = appInstance.state.updateState((state) => {
-                        console.log(document.getElementById("preGeneratedCode").value, 'beforeParse');
-                        let graph = JSON.parse(document.getElementById("preGeneratedCode").value);
-                        console.log(graph);
-                        return {
-                            ...state,
-                            ...graph,
-                        }
-                    });
-                }
-
-                const root = document.getElementById('jsLab');
-
-                // основная функция для рендеринга
-                const render = (state) => {
-                    console.log('state', state);
-                    renderTemplate(root, getHTML({...state}));
-                    renderDag(state, appInstance);
-                    bindActionListeners(appInstance);
-                };
-
-                appInstance.subscriber.subscribe('render', render);
-
-                // инициализируем первую отрисовку
-                appInstance.subscriber.emit('render', appInstance.state.getState());
-            }
-            else
-            {
-                // const state = appInstance.state.updateState((state) => {
-                //     return {
-                //         ...state,
-                //         stepsVariantData: [{...test_graph}],
-                //         graphSkeleton: [...test_graph.edges],
-                //     }
-                // });
-
-                //appInstance.subscriber.emit('render', appInstance.state.getState());
+                // if(document.getElementById("preGeneratedCode").value !== "")
+                // {
+                //     const state = appInstance.state.updateState((state) => {
+                //         console.log(document.getElementById("preGeneratedCode").value, 'beforeParse');
+                //         let graph = JSON.parse(document.getElementById("preGeneratedCode").value);
+                //         console.log(graph);
+                //         return {
+                //             ...state,
+                //             ...graph,
+                //         }
+                //     });
+                // }
+                //
+                // const root = document.getElementById('jsLab');
+                //
+                // // основная функция для рендеринга
+                // const render = (state) => {
+                //     console.log('state', state);
+                //     renderTemplate(root, getHTML({...state}));
+                //     renderDag(state, appInstance);
+                //     bindActionListeners(appInstance);
+                // };
+                //
+                // appInstance.subscriber.subscribe('render', render);
+                //
+                // // инициализируем первую отрисовку
+                // appInstance.subscriber.emit('render', appInstance.state.getState());
             }
         },
         getCondition: function () {

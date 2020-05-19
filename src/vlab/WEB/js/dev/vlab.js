@@ -1,36 +1,20 @@
 const test_graph = {
-    nodes: [0,1,2,3,4,5,6,7,8],
-    nodesLevel: [1, 2, 2, 2, 3, 3, 3, 3, 4],
-    edges: [
-        [0, 1, 1, 1, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 1, 1, 1, 1, 0],
-        [0, 0, 0, 0, 1, 1, 1, 1, 0],
-        [0, 0, 0, 0, 1, 1, 1, 1, 0],
-        [0, 0, 0, 0, 1, 1, 1, 1, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    ],
-};
-
-const test_graph_2 = {
     nodes: [0,1,2,3,4],
-    nodesLevel: [1, 1, 2, 2, 3],
-    nodesValue: [1, 0, null, 3, null],
+    nodesLevel: [1,1,2,2,3],
+    nodesValue: [1,0,0.61,0.69,0.33],
     edges: [
-        [0, 0, 1, 1, 0],
-        [0, 0, 1, 1, 0],
-        [0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 0],
+        [0,0,1,1,0],
+        [0,0,1,1,0],
+        [0,0,0,0,1],
+        [0,0,0,0,1],
+        [0,0,0,0,0],
     ],
     edgeWeight: [
-        [0, 0, -0.12, 0.78, 0],
-        [0, 0, 0.45, 0.13, 0],
-        [0, 0, 0, 0, 1.5],
-        [0, 0, 0, 0, -2.3],
-        [0, 0, 0, 0, 0],
+        [0,0,0.45,0.78,0],
+        [0,0,-0.12,0.13,0],
+        [0,0,0,0,1.5],
+        [0,0,0,0,-2.3],
+        [0,0,0,0,0],
     ],
 };
 
@@ -130,12 +114,14 @@ function dataToSigma(state) {
         for (let j = 0; j < edges.length; j++) {
             if(edges[i][j] === 1)
             {
+                //костыль с размером. почему-то не рисует рёбра, если сеттить норм значение ребра
                 resultEdges.push({
                     id: "e" + i + j,
                     source: "n" + i,
                     target: "n" + j,
                     label: edgeWeight[i][j].toString(),
-                    color: "#000"
+                    color: "#000",
+                    size: 200,
                 });
             }
         }
@@ -149,6 +135,7 @@ function dataToSigma(state) {
 
 function getHTML(templateData) {
     let tableData = "";
+    let backPropagationData = "";
 
     let countInvalidNodesValue = 0;
 
@@ -159,9 +146,30 @@ function getHTML(templateData) {
         }
     }
 
-    for(let i = 0; i < templateData.neuronsTableData.length; i++)
+    backPropagationData += `<tr>
+            <td>
+            
+            </td>
+            <td>
+                <input class="tableInputData" type="number"/>
+            </td>
+            <td>
+                <input class="tableInputData" type="number"/>
+            </td>
+            <td>
+                <input class="tableInputData" type="number"/>
+            </td>
+            <td>
+                <input class="tableInputData" type="number"/>
+            </td>
+        </tr>
+    `;
+
+    if(templateData.neuronsTableData)
     {
-        tableData += `<tr>
+        for(let i = 0; i < templateData.neuronsTableData.length; i++)
+        {
+            tableData += `<tr>
             <td>
                 ${templateData.neuronsTableData[i].nodeId}
             </td>
@@ -175,6 +183,7 @@ function getHTML(templateData) {
                 ${templateData.neuronsTableData[i].neuronOutputSignalValue}            
             </td>
         </tr>`;
+        }
     }
 
     tableData += `<tr>
@@ -182,13 +191,13 @@ function getHTML(templateData) {
             ${templateData.currentSelectedNodeId ? templateData.currentSelectedNodeId : ""}
         </td>
         <td>
-            <input id="currentNeuronInputSignalFormula" placeholder="Введите числовую формулу" class="tableInputData" type="text" value="${templateData.currentNeuronInputSignalFormula}"/>
+            <input ${templateData.isBackpropagationDone === false ? "disabled" : ""} id="currentNeuronInputSignalFormula" placeholder="Введите числовую формулу" class="tableInputData" type="text" value="${templateData.currentNeuronInputSignalFormula}"/>
         </td>
         <td>
-            <input id="currentNeuronInputSignalValue" placeholder="Введите число" class="tableInputData" type="number" value="${templateData.currentNeuronInputSignalValue}"/>
+            <input ${templateData.isBackpropagationDone === false ? "disabled" : ""} id="currentNeuronInputSignalValue" placeholder="Введите число" class="tableInputData" type="number" value="${templateData.currentNeuronInputSignalValue}"/>
         </td>
         <td>
-            <input id="currentNeuronOutputSignalValue" placeholder="Введите число" class="tableInputData" type="number" value="${templateData.currentNeuronOutputSignalValue}"/>
+            <input ${templateData.isBackpropagationDone === false ? "disabled" : ""} id="currentNeuronOutputSignalValue" placeholder="Введите число" class="tableInputData" type="number" value="${templateData.currentNeuronOutputSignalValue}"/>
         </td>
     </tr>`;
 
@@ -250,8 +259,22 @@ function getHTML(templateData) {
                             <div id="container"></div>
                         </div>
                     </td>
-                    <td class="step-td">
+                    <td class="step-td">                      
                         <div class="steps">
+                            <table class="backpropagation steps-table">     
+                                <tr>
+                                    <th>Ребро</th>
+                                    <th>DELTA</th>
+                                    <th>GRAD</th>
+                                    <th>DELTA W</th>
+                                    <th>NEW W</th>
+                                </tr>                
+                                ${backPropagationData}
+                            </table>
+                            <div class="steps-buttons">
+                                <input id="addStepBackpropagation" class="addStep  btn-success" type="button" value="След."/>
+                                <input type="button" class="minusStepBackpropagation btn btn-danger" value="Пред.">
+                            </div>                          
                             <div class="steps-buttons">
                                 <input id="addStep" class="addStep btn btn-success" type="button" value="+"/>
                                 <input type="button" class="minusStep btn btn-danger" value="-">
@@ -296,7 +319,9 @@ function initState() {
         error: 0,
         isSelectingNodesModeActivated: false,
         currentStep: 0,
-        // ...test_graph_2,
+        isBackpropagationDone: false,
+        currentEdge: [],
+        selectedEdges: [],
     };
 
     return {
@@ -499,6 +524,7 @@ function renderDag(state, appInstance) {
         }],
         settings: {
             defaultEdgeLabelSize: 15,
+            enableEdgeHovering: true,
         },
     });
 
@@ -514,58 +540,81 @@ function renderDag(state, appInstance) {
 
     s.bind('clickNode', (res) => {
         const state = appInstance.state.updateState((state) => {
-
-            if(state.isSelectingNodesModeActivated)
+            if(state.isBackpropagationDone)
             {
-                let currentNodeSectionCopy = [...state.currentNodeSection];
-                let isNodeInList = false;
+                if(state.isSelectingNodesModeActivated)
+                {
+                    let currentNodeSectionCopy = [...state.currentNodeSection];
+                    let isNodeInList = false;
 
-                currentNodeSectionCopy.map((nodeId,index)=> {
-                    if(nodeId === res.data.node.id)
+                    currentNodeSectionCopy.map((nodeId,index)=> {
+                        if(nodeId === res.data.node.id)
+                        {
+                            currentNodeSectionCopy.splice(index, 1);
+                            isNodeInList = true;
+                            return;
+                        }
+                    });
+
+                    if(!isNodeInList && res.data.node.id !== state.currentSelectedNodeId)
                     {
-                        currentNodeSectionCopy.splice(index, 1);
-                        isNodeInList = true;
-                        return;
+                        currentNodeSectionCopy.push(res.data.node.id);
                     }
-                });
+                    else if (res.data.node.id === state.currentSelectedNodeId)
+                    {
+                        return {
+                            ...state,
+                            currentNodeSection: [],
+                            currentSelectedNodeId: "",
+                            isSelectingNodesModeActivated: false,
+                        }
+                    }
 
-                if(!isNodeInList && res.data.node.id !== state.currentSelectedNodeId)
-                {
-                    currentNodeSectionCopy.push(res.data.node.id);
-                }
-                else if (res.data.node.id === state.currentSelectedNodeId)
-                {
                     return {
                         ...state,
-                        currentNodeSection: [],
-                        currentSelectedNodeId: "",
-                        isSelectingNodesModeActivated: false,
-                    }
-                }
-
-                return {
-                    ...state,
-                    currentNodeSection: currentNodeSectionCopy,
-                }
-            }
-            else
-            {
-                if(state.currentSelectedNodeId === res.data.node.id)
-                {
-                    return {
-                        ...state,
-                        currentSelectedNodeId: "",
-                        isSelectingNodesModeActivated: false,
+                        currentNodeSection: currentNodeSectionCopy,
                     }
                 }
                 else
                 {
-                    return {
-                        ...state,
-                        currentSelectedNodeId: res.data.node.id,
-                        isSelectingNodesModeActivated: true,
+                    if(state.currentSelectedNodeId === res.data.node.id)
+                    {
+                        return {
+                            ...state,
+                            currentSelectedNodeId: "",
+                            isSelectingNodesModeActivated: false,
+                        }
+                    }
+                    else
+                    {
+                        return {
+                            ...state,
+                            currentSelectedNodeId: res.data.node.id,
+                            isSelectingNodesModeActivated: true,
+                        }
                     }
                 }
+            }
+            else
+            {
+                alert(123);
+
+                return {
+                    ...state,
+                }
+            }
+
+        });
+
+        appInstance.subscriber.emit('render', state);
+    });
+
+    s.bind('clickEdge', (res) => {
+        const state = appInstance.state.updateState((state) => {
+            return {
+                ...state,
+                res,
+                currentEdge: [res.data.edge.source, res.data.edge.target]
             }
         });
 
@@ -587,6 +636,7 @@ function init_lab() {
 
         //Инициализация ВЛ
         init: function () {
+
             if(document.getElementById("preGeneratedCode"))
             {
                 if(document.getElementById("preGeneratedCode").value !== "")
@@ -601,34 +651,30 @@ function init_lab() {
                         }
                     });
                 }
-
-                const root = document.getElementById('jsLab');
-
-                // основная функция для рендеринга
-                const render = (state) => {
-                    console.log('state', state);
-                    renderTemplate(root, getHTML({...state}));
-                    renderDag(state, appInstance);
-                    bindActionListeners(appInstance);
-                };
-
-                appInstance.subscriber.subscribe('render', render);
-
-                // инициализируем первую отрисовку
-                appInstance.subscriber.emit('render', appInstance.state.getState());
             }
-            else
             {
-                // const state = appInstance.state.updateState((state) => {
-                //     return {
-                //         ...state,
-                //         stepsVariantData: [{...test_graph}],
-                //         graphSkeleton: [...test_graph.edges],
-                //     }
-                // });
-
-                //appInstance.subscriber.emit('render', appInstance.state.getState());
+                const state = appInstance.state.updateState((state) => {
+                    return {
+                        ...state,
+                        ...test_graph,
+                    }
+                });
             }
+
+            const root = document.getElementById('jsLab');
+
+            // основная функция для рендеринга
+            const render = (state) => {
+                console.log('state', state);
+                renderTemplate(root, getHTML({...state}));
+                renderDag(state, appInstance);
+                bindActionListeners(appInstance);
+            };
+
+            appInstance.subscriber.subscribe('render', render);
+
+            // инициализируем первую отрисовку
+            appInstance.subscriber.emit('render', appInstance.state.getState());
         },
         getCondition: function () {
         },
