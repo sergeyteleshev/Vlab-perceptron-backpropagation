@@ -38,6 +38,8 @@ function dataToSigma(state) {
     let t = 1;
     let maxLevel = 1;
     let yLevel = 1;
+    let currentEdgeSource = state.currentEdge.length === 2 ? Number(state.currentEdge[0].match(/(\d+)/)[0]) : null;
+    let currentEdgeTarget = state.currentEdge.length === 2 ? Number(state.currentEdge[1].match(/(\d+)/)[0]) : null;
 
     for (let i = 0; i < nodesLevel.length; i++) {
         nodesLevelAmount[nodesLevel[i]] = 1 + (nodesLevelAmount[nodesLevel[i]] || 0);
@@ -112,6 +114,16 @@ function dataToSigma(state) {
 
     for (let i = 0; i < edges.length; i++) {
         for (let j = 0; j < edges.length; j++) {
+            let edgeColor = "#000";
+
+            if(currentEdgeSource !== null && currentEdgeSource !== null && edges[currentEdgeSource][currentEdgeTarget] === 1
+                && i === currentEdgeSource && j === currentEdgeTarget)
+            {
+                edgeColor = "#F00";
+                currentEdgeSource = null;
+                currentEdgeTarget = null;
+            }
+
             if(edges[i][j] === 1)
             {
                 //костыль с размером. почему-то не рисует рёбра, если сеттить норм значение ребра
@@ -120,7 +132,7 @@ function dataToSigma(state) {
                     source: "n" + i,
                     target: "n" + j,
                     label: edgeWeight[i][j].toString(),
-                    color: "#000",
+                    color: edgeColor,
                     size: 200,
                 });
             }
@@ -136,6 +148,7 @@ function dataToSigma(state) {
 function getHTML(templateData) {
     let tableData = "";
     let backPropagationData = "";
+    let currentEdgeString = "";
 
     let countInvalidNodesValue = 0;
 
@@ -146,21 +159,24 @@ function getHTML(templateData) {
         }
     }
 
+    if (templateData.currentEdge[0] && templateData.currentEdge[1])
+        currentEdgeString = "(" + templateData.currentEdge[0] + "; " + templateData.currentEdge[1] + ")";
+
     backPropagationData += `<tr>
             <td>
-            
+                ${currentEdgeString}
             </td>
             <td>
-                <input class="tableInputData" type="number"/>
+                <input value="${templateData.currentDelta}" id="delta" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
             </td>
             <td>
-                <input class="tableInputData" type="number"/>
+                <input value="${templateData.currentGrad}" id="grad" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
             </td>
             <td>
-                <input class="tableInputData" type="number"/>
+                <input value="${templateData.currentDeltaW}" id="deltaW" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
             </td>
             <td>
-                <input class="tableInputData" type="number"/>
+                <input value="${templateData.currentNewW}" id="newW" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
             </td>
         </tr>
     `;
@@ -208,7 +224,7 @@ function getHTML(templateData) {
                     <td colspan="2">
                         <div class="lab-header">
                             <div></div>
-                            <span>Ток сигнала в перцептроне Розенблатта</span>
+                            <span>Метод обратного распространения сигнала в перцептроне</span>
                             <!-- Button trigger modal -->
                             <button type="button" class="btn btn-info" data-toggle="modal" data-target="#exampleModalScrollable">
                               Справка
@@ -261,6 +277,10 @@ function getHTML(templateData) {
                     </td>
                     <td class="step-td">                      
                         <div class="steps">
+                            <div class="steps-buttons-backpropagation">
+                                <input id="addStepBackpropagation" class="addStepBackpropagation btn btn-success" type="button" value="+"/>
+                                <input type="button" class="minusStepBackpropagation btn btn-danger" value="-">
+                            </div>
                             <table class="backpropagation steps-table">     
                                 <tr>
                                     <th>Ребро</th>
@@ -270,11 +290,7 @@ function getHTML(templateData) {
                                     <th>NEW W</th>
                                 </tr>                
                                 ${backPropagationData}
-                            </table>
-                            <div class="steps-buttons">
-                                <input id="addStepBackpropagation" class="addStep  btn-success" type="button" value="След."/>
-                                <input type="button" class="minusStepBackpropagation btn btn-danger" value="Пред.">
-                            </div>                          
+                            </table>                                                     
                             <div class="steps-buttons">
                                 <input id="addStep" class="addStep btn btn-success" type="button" value="+"/>
                                 <input type="button" class="minusStep btn btn-danger" value="-">
@@ -307,6 +323,7 @@ function initState() {
     let _state = {
         currentNodeSection: [],
         neuronsTableData: [],
+        edgesTableData: [],
         currentSelectedNodeId: "",
         prevSelectedNodeId: "",
         prevNeuronInputSignalFormula: "",
@@ -319,9 +336,14 @@ function initState() {
         error: 0,
         isSelectingNodesModeActivated: false,
         currentStep: 0,
+        currentEdgeStep: 0,
         isBackpropagationDone: false,
         currentEdge: [],
         selectedEdges: [],
+        currentDelta: null,
+        currentGrad: null,
+        currentDeltaW: null,
+        currentNewW: null,
     };
 
     return {
@@ -382,6 +404,50 @@ function bindActionListeners(appInstance)
         appInstance.subscriber.emit('render', state);
     });
 
+    document.getElementById("delta").addEventListener('change', () => {
+        const state = appInstance.state.updateState((state) => {
+            return {
+                ...state,
+                currentDelta: Number(document.getElementById("delta").value),
+            }
+        });
+
+        appInstance.subscriber.emit('render', state);
+    });
+
+    document.getElementById("grad").addEventListener('change', () => {
+        const state = appInstance.state.updateState((state) => {
+            return {
+                ...state,
+                currentGrad: Number(document.getElementById("grad").value),
+            }
+        });
+
+        appInstance.subscriber.emit('render', state);
+    });
+
+    document.getElementById("deltaW").addEventListener('change', () => {
+        const state = appInstance.state.updateState((state) => {
+            return {
+                ...state,
+                currentDeltaW: Number(document.getElementById("deltaW").value),
+            }
+        });
+
+        appInstance.subscriber.emit('render', state);
+    });
+
+    document.getElementById("newW").addEventListener('change', () => {
+        const state = appInstance.state.updateState((state) => {
+            return {
+                ...state,
+                currentNewW: Number(document.getElementById("newW").value),
+            }
+        });
+
+        appInstance.subscriber.emit('render', state);
+    });
+
     document.getElementById("currentNeuronOutputSignalValue").addEventListener('change', () => {
         const state = appInstance.state.updateState((state) => {
             return {
@@ -412,6 +478,56 @@ function bindActionListeners(appInstance)
             }
         });
 
+        appInstance.subscriber.emit('render', state);
+    });
+
+    document.getElementById("addStepBackpropagation").addEventListener('click', () => {
+        const state = appInstance.state.updateState((state) => {
+            let currentEdgeStep = state.currentEdgeStep;
+            let edgesTableData = state.edgesTableData.slice();
+
+            let prevDelta = state.currentDelta;
+            let prevGrad = state.currentGrad ;
+            let prevDeltaW = state.currentDeltaW ;
+            let prevNewW = state.currentNewW;
+            let prevEdge = state.currentEdge.slice();
+
+            if(state.currentEdge.length > 0 && !isNaN(state.currentDelta)
+                && !isNaN(state.currentGrad) && !isNaN(state.currentDeltaW) && !isNaN(state.currentNewW))
+            {
+                currentEdgeStep++;
+                edgesTableData.push({
+                    currentDelta: state.currentDelta,
+                    currentGrad: state.currentGrad,
+                    currentDeltaW: state.currentDeltaW,
+                    currentNewW: state.currentNewW,
+                });
+            }
+            else
+            {
+                return {
+                    ...state,
+                }
+            }
+
+            return  {
+                ...state,
+                currentEdgeStep,
+                edgesTableData,
+                prevDelta,
+                prevGrad,
+                prevDeltaW,
+                prevNewW,
+                prevEdge,
+                currentDelta: "",
+                currentGrad: "",
+                currentDeltaW: "",
+                currentNewW: "",
+                currentEdge: [],
+            }
+        });
+
+        // перересовываем приложение
         appInstance.subscriber.emit('render', state);
     });
 
@@ -471,7 +587,6 @@ function bindActionListeners(appInstance)
 
         // перересовываем приложение
         appInstance.subscriber.emit('render', state);
-        // renderDag(state, appInstance);
     });
 
     document.getElementsByClassName("minusStep")[0].addEventListener('click', () => {
@@ -597,7 +712,7 @@ function renderDag(state, appInstance) {
             }
             else
             {
-                alert(123);
+                alert("Сначала найдите все новые веса дендритов");
 
                 return {
                     ...state,
@@ -611,11 +726,30 @@ function renderDag(state, appInstance) {
 
     s.bind('clickEdge', (res) => {
         const state = appInstance.state.updateState((state) => {
-            return {
-                ...state,
-                res,
-                currentEdge: [res.data.edge.source, res.data.edge.target]
+            if(state.currentEdge.length === 2 && state.currentEdge[0] === res.data.edge.source
+                && state.currentEdge[1] === res.data.edge.target)
+            {
+                return {
+                    ...state,
+                    res,
+                    currentEdge: []
+                }
             }
+            else if(state.currentEdge.length === 0)
+            {
+                return {
+                    ...state,
+                    res,
+                    currentEdge: [res.data.edge.source, res.data.edge.target]
+                }
+            }
+            else
+            {
+                return {
+                    ...state,
+                }
+            }
+
         });
 
         appInstance.subscriber.emit('render', state);
@@ -652,14 +786,13 @@ function init_lab() {
                     });
                 }
             }
-            {
-                const state = appInstance.state.updateState((state) => {
-                    return {
-                        ...state,
-                        ...test_graph,
-                    }
-                });
-            }
+
+            const state = appInstance.state.updateState((state) => {
+                return {
+                    ...state,
+                    ...test_graph,
+                }
+            });
 
             const root = document.getElementById('jsLab');
 
