@@ -142,5 +142,8 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         graph.put("nodesValue", nodesValue);
         graph.put("edges", edges);
         graph.put("hiddenNodesLeft", hiddenLayerNodesAmount);
+        //todo посчитать количество рёбер
+        graph.put("edgesAmount", new JSONObject());
+        graph.put("inputNeuronsAmount", Consts.inputNeuronsAmount);
     }
 }
