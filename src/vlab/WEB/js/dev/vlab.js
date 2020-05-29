@@ -227,6 +227,7 @@ function getHTML(templateData) {
         }
     }
 
+    //todo не работает добавление строки в таблицу из-за формулы
     tableData += `<tr>
         <td>
             ${templateData.currentSelectedNodeId ? templateData.currentSelectedNodeId : ""}

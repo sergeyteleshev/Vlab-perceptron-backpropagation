@@ -88,7 +88,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return new CheckingSingleConditionResult(BigDecimal.valueOf(points), test.toString());
     }
 
-    private static JSONArray jsonObjectToJsonArray(JSONObject jsonObject)
+    public static JSONArray jsonObjectToJsonArray(JSONObject jsonObject)
     {
         JSONArray result = new JSONArray();
         Iterator x = jsonObject.keys();
@@ -216,7 +216,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return Math.pow(1 - outputNeuronValue, 2) / 1;
     }
 
-    private static double[] getDoublerrayByKey(JSONArray arr, String key)
+    public static double[] getDoublerrayByKey(JSONArray arr, String key)
     {
         double[] result = new double[arr.length()];
 
@@ -285,7 +285,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return Arrays.equals(normalArr1, normalArr2);
     }
 
-    private double getSigmoidValue(double x)
+    private static double getSigmoidValue(double x)
     {
         return (1 / (1 + Math.exp(-x)));
     }
@@ -311,7 +311,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return new JSONArray(jsonArray);
     }
 
-    private JSONObject generateRightAnswer(JSONArray nodes, JSONArray edges, JSONArray nodesValue, JSONArray edgeWeight)
+    public static JSONObject generateRightAnswer(JSONArray nodes, JSONArray edges, JSONArray nodesValue, JSONArray edgeWeight)
     {
         ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
         double error = 0;
@@ -393,7 +393,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return serverAnswer;
     }
 
-    private double[][] twoDimentionalJsonArrayToDouble(JSONArray arr)
+    public static double[][] twoDimentionalJsonArrayToDouble(JSONArray arr)
     {
         double[][] result = new double[arr.length()][arr.getJSONArray(0).length()];
 
@@ -408,7 +408,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
-    private ArrayList<Integer> findEdgesToNeuron(double[][] edges, int neuronIndex)
+    private static ArrayList<Integer> findEdgesToNeuron(double[][] edges, int neuronIndex)
     {
         ArrayList<Integer> result = new ArrayList<>();
 
@@ -423,7 +423,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
-    private JSONObject backpropagation(double[] neuronOutputSignalValue, double[][] edgesWeight)
+    public static JSONObject backpropagation(double[] neuronOutputSignalValue, double[][] edgesWeight)
     {
         JSONObject result = new JSONObject();
         double[] delta = new double[neuronOutputSignalValue.length];

@@ -1,10 +1,16 @@
 package vlab.server_java.generate;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import rlcp.generate.GeneratingResult;
 import rlcp.server.processor.generate.GenerateProcessor;
 import vlab.server_java.Consts;
+import vlab.server_java.check.CheckProcessorImpl;
+
 import java.util.Random;
+
+import static vlab.server_java.check.CheckProcessorImpl.generateRightAnswer;
+import static vlab.server_java.check.CheckProcessorImpl.jsonObjectToJsonArray;
 
 /**
  * Simple GenerateProcessor implementation. Supposed to be changed as needed to
@@ -37,10 +43,12 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         };
         int[] nodesLevel = {0,0,1,1,2};
 
+        JSONObject graph = generateGraph();
 
+        JSONArray serverAnswer = jsonObjectToJsonArray(generateRightAnswer(nodes, edges, nodesValue, edgeWeight));
 
-        double[] signalOutputArray = new double[nodesValue.length()];
-        double[] serverAnswerNeuronOutputSignalValue = getDoublerrayByKey(serverAnswer, "neuronOutputSignalValue");
+        double[] signalOutputArray = new double[nodesValue.length];
+        double[] serverAnswerNeuronOutputSignalValue = CheckProcessorImpl.getDoublerrayByKey(serverAnswer, "neuronOutputSignalValue");
 
         for(int i = 0; i < signalOutputArray.length; i++)
         {
@@ -54,7 +62,7 @@ public class GenerateProcessorImpl implements GenerateProcessor {
             }
         }
 
-        JSONObject test = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
+        JSONObject test = CheckProcessorImpl.backpropagation(signalOutputArray, edgeWeight);
 
         code = graph.toString();
         text = "Find signal in every neuron and calculate MSE of last one";
@@ -62,7 +70,19 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         return new GeneratingResult(text, code, instructions);
     }
 
-    private generateGraph()
+    private int countEdges(int[][] edges)
+    {
+        int edgesAmount = 0;
+
+        for(int i = 0; i < edges.length; i++)
+            for(int j = 0; j < edges[i].length; j++)
+                if(edges[i][j] == 1)
+                    edgesAmount++;
+
+        return edgesAmount;
+    }
+
+    private JSONObject generateGraph()
     {
         final Random random = new Random();
         JSONObject graph = new JSONObject();
@@ -79,6 +99,12 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         int currentHiddenLayer = 2;
 
         int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer ; //всего вершин в графе
+
+        int[][] edges = new int[nodesAmount][nodesAmount];
+        int[] nodes = new int[nodesAmount];
+        Object[] nodesValue = new Object[nodesAmount];
+        float[][] edgeWeight = new float[nodesAmount][nodesAmount];
+        int[] nodesLevel = new int[nodesAmount];
 
         //начальные значения для рецепторов
         for(int i = 0; i < inputNeuronsAmount; i++)
@@ -143,7 +169,9 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         graph.put("edges", edges);
         graph.put("hiddenNodesLeft", hiddenLayerNodesAmount);
         //todo посчитать количество рёбер
-        graph.put("edgesAmount", new JSONObject());
+        graph.put("edgesAmount", countEdges(edges));
         graph.put("inputNeuronsAmount", Consts.inputNeuronsAmount);
+
+        return graph;
     }
 }
