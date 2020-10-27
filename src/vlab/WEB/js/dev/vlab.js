@@ -83,6 +83,7 @@ function dataToSigma(state) {
                 nodeColor = "#28a745";
             }
         }
+
         if(typeof nodesValue[i] === "number")
         {
             nodeColor = "#28a745";
@@ -648,7 +649,7 @@ function bindActionListeners(appInstance)
 }
 
 function renderDag(state, appInstance) {
-    var s = new sigma({
+    let s = new sigma({
         renderers: [{
             container: document.getElementById('container'),
             type: "canvas",

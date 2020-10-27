@@ -43,10 +43,10 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 //        int[] nodesLevel = {0,0,1,1,2};
 
         JSONObject graph = generateGraph();
-        JSONArray nodes = graph.getJSONArray("nodes");
-        JSONArray edges = graph.getJSONArray("edges");
-        JSONArray nodesValue = graph.getJSONArray("nodesValue");
-        JSONArray edgeWeight = graph.getJSONArray("edgeWeight");
+        JSONArray nodes = new JSONArray(graph.get("nodes"));
+        JSONArray edges = new JSONArray(graph.get("edges"));
+        JSONArray nodesValue = new JSONArray(graph.get("nodesValue"));
+        JSONArray edgeWeight = new JSONArray(graph.get("edgeWeight"));
 
         JSONArray serverAnswer = jsonObjectToJsonArray(generateRightAnswer(nodes, edges, nodesValue, edgeWeight));
 

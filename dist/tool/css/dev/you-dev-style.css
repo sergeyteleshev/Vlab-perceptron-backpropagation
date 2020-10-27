@@ -71,12 +71,32 @@ body
     text-align: center;
 }
 
-.addStep, .minusStep
+.addStep, .minusStep, .addStepBackpropagation, .minusStepBackpropagation
 {
     text-align: center;
     width: 35px;
     height: 35px;
     border-radius: 5px;
+}
+
+.addStepBackpropagation
+{
+
+}
+
+.backpropagation td:first-child
+{
+    white-space: nowrap;
+}
+
+.minusStepBackpropagation
+{
+    margin-left: 5px;
+}
+
+.steps-buttons-backpropagation
+{
+    margin-bottom: 20px;
 }
 
 .minusStep
