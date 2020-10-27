@@ -9,8 +9,7 @@ import vlab.server_java.check.CheckProcessorImpl;
 
 import java.util.Random;
 
-import static vlab.server_java.check.CheckProcessorImpl.generateRightAnswer;
-import static vlab.server_java.check.CheckProcessorImpl.jsonObjectToJsonArray;
+import static vlab.server_java.check.CheckProcessorImpl.*;
 
 /**
  * Simple GenerateProcessor implementation. Supposed to be changed as needed to
@@ -24,30 +23,34 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         String code;
         String instructions = "instructions";
 
-        int[][] edges = {
-            {0,0,1,1,0},
-            {0,0,1,1,0},
-            {0,0,0,0,1},
-            {0,0,0,0,1},
-            {0,0,0,0,0},
-        };
-
-        int[] nodes = {0,1,2,3,4};
-        Object[] nodesValue = {1,0,null,null,null};
-        double[][] edgeWeight = {
-                {0,0,0.45,0.78,0},
-                {0,0,-0.12,0.13,0},
-                {0,0,0,0,1.5},
-                {0,0,0,0,-2.3},
-                {0,0,0,0,0},
-        };
-        int[] nodesLevel = {0,0,1,1,2};
+//        int[][] edges = {
+//                {0,0,1,1,0},
+//                {0,0,1,1,0},
+//                {0,0,0,0,1},
+//                {0,0,0,0,1},
+//                {0,0,0,0,0},
+//        };
+//
+//        int[] nodes = {0,1,2,3,4};
+//        Object[] nodesValue = {1,0,null,null,null};
+//        double[][] edgeWeight = {
+//                {0,0,0.45,0.78,0},
+//                {0,0,-0.12,0.13,0},
+//                {0,0,0,0,1.5},
+//                {0,0,0,0,-2.3},
+//                {0,0,0,0,0},
+//        };
+//        int[] nodesLevel = {0,0,1,1,2};
 
         JSONObject graph = generateGraph();
+        JSONArray nodes = graph.getJSONArray("nodes");
+        JSONArray edges = graph.getJSONArray("edges");
+        JSONArray nodesValue = graph.getJSONArray("nodesValue");
+        JSONArray edgeWeight = graph.getJSONArray("edgeWeight");
 
         JSONArray serverAnswer = jsonObjectToJsonArray(generateRightAnswer(nodes, edges, nodesValue, edgeWeight));
 
-        double[] signalOutputArray = new double[nodesValue.length];
+        double[] signalOutputArray = new double[nodesValue.length()];
         double[] serverAnswerNeuronOutputSignalValue = CheckProcessorImpl.getDoublerrayByKey(serverAnswer, "neuronOutputSignalValue");
 
         for(int i = 0; i < signalOutputArray.length; i++)
@@ -62,7 +65,7 @@ public class GenerateProcessorImpl implements GenerateProcessor {
             }
         }
 
-        JSONObject test = CheckProcessorImpl.backpropagation(signalOutputArray, edgeWeight);
+        JSONObject test = CheckProcessorImpl.backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
 
         code = graph.toString();
         text = "Find signal in every neuron and calculate MSE of last one";
