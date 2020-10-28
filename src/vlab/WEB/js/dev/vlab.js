@@ -16,11 +16,12 @@ const test_graph = {
         [0,0,0,0,-2.3],
         [0,0,0,0,0],
     ],
-    inputNeuronsAmount: 2,
+    inputNeuronsAmount: 0,
+    outputNeuronsAmount: 0,
+    amountOfNodesInHiddenLayer: 0,
     edgesAmount: 6,
 };
 
-//todo виснет весь проект. оптимизировать отрисовку
 function dataToSigma(state) {
     let edges = state.edges;
     let nodes = state.nodes;
@@ -33,11 +34,14 @@ function dataToSigma(state) {
     let resultEdges = [];
     let resultNodes = [];
     let nodesLevelAmount = [];
-    let t = 1;
     let maxLevel = 1;
-    let yLevel = 1;
     let currentEdgeSource = state.currentEdge.length === 2 ? state.currentEdge[0] : null;
     let currentEdgeTarget = state.currentEdge.length === 2 ? state.currentEdge[1] : null;
+    let yLevelRandomDisplacement = state.yLevelRandomDisplacement;
+    let inputNeuronsAmount = state.inputNeuronsAmount;
+    let outputNeuronsAmount = state.outputNeuronsAmount;
+    let amountOfNodesInHiddenLayer = state.amountOfNodesInHiddenLayer;
+    let maxNeuronsInLayer = Math.max(inputNeuronsAmount, outputNeuronsAmount, amountOfNodesInHiddenLayer);
 
     for (let i = 0; i < nodesLevel.length; i++) {
         nodesLevelAmount[nodesLevel[i]] = 1 + (nodesLevelAmount[nodesLevel[i]] || 0);
@@ -48,34 +52,14 @@ function dataToSigma(state) {
         maxLevel = el;
     });
 
-    let yCenter = maxLevel / 2;
-
     for (let i = 0; i < edges.length; i++) {
         let nodeValue = nodesValue[i] !== null ? `(I${i} = ${nodesValue[i]})` : "";
         let nodeColor = "#000";
         let nodeId = "n" + i;
+        let yLevel = 0;
 
-        //рисует всё равно криво: порядок нод не тот по вертикали, но хотя бы выравнено, лол
-        if(i === 0 || i === nodes.length - 1)
-        {
-            yLevel = yCenter;
-        }
-        else
-        {
-            let dy = nodesLevel[i] / maxLevel;
-
-            yLevel = i * dy;
-
-            // if(nodesLevel[i] === nodesLevel[i - 1])
-            // {
-            //     yLevel = dy * t;
-            //     t++;
-            // }
-            // else
-            // {
-            //     t = 1;
-            // }
-        }
+        yLevel = maxNeuronsInLayer / (nodesLevel[i]) + i + 1 - nodesLevel[i];
+        yLevel += yLevelRandomDisplacement[i];
 
         for(let j = 0; j > neuronsTableData.length; j++) {
             if (neuronsTableData[j].nodeId === nodeId)
@@ -291,6 +275,9 @@ function getHTML(templateData) {
                             <div class="steps-buttons-backpropagation">
                                 <input id="addStepBackpropagation" class="addStepBackpropagation btn btn-success" type="button" value="+"/>
                                 <input type="button" class="minusStepBackpropagation btn btn-danger" value="-">
+                                <button type="button" class="btn btn-info redrawGraph">
+                                  Перерисовать граф
+                                </button>
                             </div>
                             <table class="backpropagation steps-table">     
                                 <tr>
@@ -301,7 +288,7 @@ function getHTML(templateData) {
                                     <th>NEW W</th>
                                 </tr>                
                                 ${backPropagationData}
-                            </table>                                                                                                              
+                            </table>                                       
                             <div class="maxFlow">
                                 <span>MSE:</span>
                                 <input type='number' ${countInvalidNodesValue !== 0 || templateData.isBackpropagationDone === false ? "disabled" : ""} class='maxFlow-input' id="error" value="${templateData.error}"'/>                       
@@ -382,6 +369,22 @@ function App() {
 
 function bindActionListeners(appInstance)
 {
+    document.getElementsByClassName('redrawGraph')[0].addEventListener('click', () => {
+        const state = appInstance.state.updateState((state) => {
+            let yLevelRandomDisplacement = state.nodes.map(node => {
+                return 2 + Math.random() * 3; //смещение ноты по Y из-за того, что не видно значение ребра при отрисовке
+            });
+
+            return {
+                ...state,
+                yLevelRandomDisplacement,
+            }
+        });
+
+        // перересовываем приложение
+        appInstance.subscriber.emit('render', state);
+    });
+
     document.getElementById("error").addEventListener('change', () => {
         const state = appInstance.state.updateState((state) => {
 
@@ -700,42 +703,13 @@ function renderDag(state, appInstance) {
             }
             else
             {
-                alert("Сначала найдите все новые веса дендритов");
+                alert("Сначала найдите все новые веса рёбер");
 
                 return {
                     ...state,
                 }
             }
 
-        });
-
-        appInstance.subscriber.emit('render', state);
-    });
-
-    s.bind('clickEdge', (res) => {
-        const state = appInstance.state.updateState((state) => {
-            if(state.isBackpropagationDone === false)
-            {
-                if(state.currentEdge.length === 2 && state.currentEdge[0] === res.data.edge.source
-                    && state.currentEdge[1] === res.data.edge.target)
-                {
-                    return {
-                        ...state,
-                        currentEdge: []
-                    }
-                }
-                else if(state.currentEdge.length === 0)
-                {
-                    return {
-                        ...state,
-                        currentEdge: [Number(res.data.edge.source.match(/(\d+)/)[0]), Number(res.data.edge.target.match(/(\d+)/)[0])]
-                    }
-                }
-            }
-
-            return {
-                ...state,
-            }
         });
 
         appInstance.subscriber.emit('render', state);
@@ -763,23 +737,27 @@ function init_lab() {
                 if(document.getElementById("preGeneratedCode").value !== "")
                 {
                     const state = appInstance.state.updateState((state) => {
-                        // console.log(document.getElementById("preGeneratedCode").value, 'beforeParse');
                         let graph = JSON.parse(document.getElementById("preGeneratedCode").value);
-                        // console.log(graph);
+                        let nodes = graph.nodes;
+                        let yLevelRandomDisplacement = nodes.map(node => {
+                            return 2 + Math.random() * 3; //смещение ноты по Y из-за того, что не видно значение ребра при отрисовке
+                        });
                         return {
                             ...state,
                             ...graph,
+                            yLevelRandomDisplacement,
                         }
                     });
                 }
             }
 
-            const state = appInstance.state.updateState((state) => {
-                return {
-                    ...state,
-                    ...test_graph,
-                }
-            });
+            // тестовый граф
+            // const state = appInstance.state.updateState((state) => {
+            //     return {
+            //         ...state,
+            //         ...test_graph,
+            //     }
+            // });
 
             // основная функция для рендеринга
             const render = (state) => {

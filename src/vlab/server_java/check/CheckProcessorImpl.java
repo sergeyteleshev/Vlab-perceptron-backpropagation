@@ -47,7 +47,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         JSONArray serverAnswer = jsonObjectToJsonArray(generateRightAnswer(nodes, edges, nodesValue, edgeWeight));
         JSONArray clientAnswer = jsonInstructions.getJSONArray("neuronsTableData");
 
-        double checkError = countMSE(serverAnswer.getJSONObject(serverAnswer.length() - 1).getDouble("neuronOutputSignalValue"));
+        double checkError = countMSE(serverAnswer);
         checkError = (double) Math.round(checkError * 100) / 100;
 
         JSONObject compareResult = compareAnswers(serverAnswer, clientAnswer, Consts.tablePoints);
@@ -211,9 +211,20 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
-    private static double countMSE(double outputNeuronValue)
+    public static double countMSE(JSONArray serverAnswer)
     {
-        return Math.pow(1 - outputNeuronValue, 2) / 1;
+        double sum = 0;
+        double mse;
+
+        for (int i = 1; i < outputNeuronsAmount + 1; i++)
+        {
+            double currentOutputNeuronValue = serverAnswer.getJSONObject(serverAnswer.length() - i).getDouble("neuronOutputSignalValue");
+            sum += Math.pow((1 - currentOutputNeuronValue), 2);
+        }
+
+        mse = sum / outputNeuronsAmount;
+
+        return mse;
     }
 
     public static double[] getDoublerrayByKey(JSONArray arr, String key)

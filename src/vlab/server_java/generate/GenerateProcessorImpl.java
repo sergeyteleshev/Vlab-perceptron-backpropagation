@@ -5,10 +5,9 @@ import org.json.JSONObject;
 import rlcp.generate.GeneratingResult;
 import rlcp.server.processor.generate.GenerateProcessor;
 import vlab.server_java.Consts;
-import vlab.server_java.check.CheckProcessorImpl;
 
-import java.util.Random;
 
+import static vlab.server_java.Consts.doubleToTwoDecimal;
 import static vlab.server_java.check.CheckProcessorImpl.*;
 
 /**
@@ -23,71 +22,6 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         String code;
         String instructions = "instructions";
 
-//        int[][] edges = {
-//                {0,0,1,1,0},
-//                {0,0,1,1,0},
-//                {0,0,0,0,1},
-//                {0,0,0,0,1},
-//                {0,0,0,0,0},
-//        };
-//
-//        int[] nodes = {0,1,2,3,4};
-//        Object[] nodesValue = {1,0,null,null,null};
-//        double[][] edgeWeight = {
-//                {0,0,0.45,0.78,0},
-//                {0,0,-0.12,0.13,0},
-//                {0,0,0,0,1.5},
-//                {0,0,0,0,-2.3},
-//                {0,0,0,0,0},
-//        };
-//        int[] nodesLevel = {0,0,1,1,2};
-
-        JSONObject graph = generateGraph();
-        JSONArray nodes = new JSONArray(graph.get("nodes"));
-        JSONArray edges = new JSONArray(graph.get("edges"));
-        JSONArray nodesValue = new JSONArray(graph.get("nodesValue"));
-        JSONArray edgeWeight = new JSONArray(graph.get("edgeWeight"));
-
-        JSONArray serverAnswer = jsonObjectToJsonArray(generateRightAnswer(nodes, edges, nodesValue, edgeWeight));
-
-        double[] signalOutputArray = new double[nodesValue.length()];
-        double[] serverAnswerNeuronOutputSignalValue = CheckProcessorImpl.getDoublerrayByKey(serverAnswer, "neuronOutputSignalValue");
-
-        for(int i = 0; i < signalOutputArray.length; i++)
-        {
-            if(i < Consts.inputNeuronsAmount)
-            {
-                signalOutputArray[i] = nodesValue.getDouble(i);
-            }
-            else
-            {
-                signalOutputArray[i] = serverAnswerNeuronOutputSignalValue[i - Consts.inputNeuronsAmount];
-            }
-        }
-
-        JSONObject test = CheckProcessorImpl.backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
-
-        code = graph.toString();
-        text = "Find signal in every neuron and calculate MSE of last one";
-
-        return new GeneratingResult(text, code, instructions);
-    }
-
-    private int countEdges(int[][] edges)
-    {
-        int edgesAmount = 0;
-
-        for(int i = 0; i < edges.length; i++)
-            for(int j = 0; j < edges[i].length; j++)
-                if(edges[i][j] == 1)
-                    edgesAmount++;
-
-        return edgesAmount;
-    }
-
-    private JSONObject generateGraph()
-    {
-        final Random random = new Random();
         JSONObject graph = new JSONObject();
 
         int minInputNeuronValue = Consts.minInputNeuronValue;
@@ -98,16 +32,16 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         int amountOfHiddenLayers = Consts.amountOfHiddenLayers;
         int amountOfNodesInHiddenLayer = Consts.amountOfNodesInHiddenLayer;
         int[] hiddenLayerNodesAmount = new int[amountOfHiddenLayers];
-        int nodesPerHiddenLayer = (int) Math.round(amountOfNodesInHiddenLayer / amountOfHiddenLayers);
         int currentHiddenLayer = 2;
 
-        int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer ; //всего вершин в графе
+        int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers; //всего вершин в графе
 
         int[][] edges = new int[nodesAmount][nodesAmount];
         int[] nodes = new int[nodesAmount];
         Object[] nodesValue = new Object[nodesAmount];
         float[][] edgeWeight = new float[nodesAmount][nodesAmount];
         int[] nodesLevel = new int[nodesAmount];
+        double initialGraphMSE = 0;
 
         //начальные значения для рецепторов
         for(int i = 0; i < inputNeuronsAmount; i++)
@@ -124,18 +58,14 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 
         //уровни словёв
         int countTemp = 0;
-        for(int i = inputNeuronsAmount; i < inputNeuronsAmount + amountOfNodesInHiddenLayer; i++)
+        int amountOfNodesBeforeOutputNeurons = inputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers;
+        for(int i = inputNeuronsAmount; i < amountOfNodesBeforeOutputNeurons; i++)
         {
             nodesLevel[i] = currentHiddenLayer;
             countTemp++;
-            if(countTemp % nodesPerHiddenLayer == 0)
+            if(countTemp % amountOfNodesInHiddenLayer == 0 && countTemp != 0)
             {
                 currentHiddenLayer++;
-            }
-
-            if(currentHiddenLayer == nodesLevel[0]  )
-            {
-                nodesLevel[i] = currentHiddenLayer - 1;
             }
         }
 
@@ -171,10 +101,38 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         graph.put("nodesValue", nodesValue);
         graph.put("edges", edges);
         graph.put("hiddenNodesLeft", hiddenLayerNodesAmount);
-        //todo посчитать количество рёбер
-        graph.put("edgesAmount", countEdges(edges));
-        graph.put("inputNeuronsAmount", Consts.inputNeuronsAmount);
+        graph.put("inputNeuronsAmount", inputNeuronsAmount);
+        graph.put("outputNeuronsAmount", outputNeuronsAmount);
+        graph.put("amountOfHiddenLayers", amountOfHiddenLayers);
+        graph.put("amountOfNodesInHiddenLayer", amountOfNodesInHiddenLayer);
 
-        return graph;
+        code = graph.toString();
+
+        //костылём рассчитываем как в методе Check наше MSE
+        JSONObject jsonCode = new JSONObject(code);
+        JSONArray jsonNodes = jsonCode.getJSONArray("nodes");
+        JSONArray jsonEdges = jsonCode.getJSONArray("edges");
+
+        JSONArray jsonEdgeWeight = jsonCode.getJSONArray("edgeWeight");
+        JSONArray jsonNodesValue = jsonCode.getJSONArray("nodesValue");
+        JSONArray serverAnswer = jsonObjectToJsonArray(generateRightAnswer(jsonNodes, jsonEdges, jsonNodesValue, jsonEdgeWeight));
+
+        initialGraphMSE = doubleToTwoDecimal(countMSE(serverAnswer));
+
+        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE);
+
+        return new GeneratingResult(text, code, instructions);
+    }
+
+    private int countEdges(int[][] edges)
+    {
+        int edgesAmount = 0;
+
+        for(int i = 0; i < edges.length; i++)
+            for(int j = 0; j < edges[i].length; j++)
+                if(edges[i][j] == 1)
+                    edgesAmount++;
+
+        return edgesAmount;
     }
 }
