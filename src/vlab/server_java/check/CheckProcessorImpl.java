@@ -211,14 +211,14 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
-    public static double countMSE(JSONArray serverAnswer)
+    public static double countMSE(JSONArray nodesValue)
     {
         double sum = 0;
         double mse;
 
         for (int i = 1; i < outputNeuronsAmount + 1; i++)
         {
-            double currentOutputNeuronValue = serverAnswer.getJSONObject(serverAnswer.length() - i).getDouble("neuronOutputSignalValue");
+            double currentOutputNeuronValue = nodesValue.getDouble(nodesValue.length() - i);
             sum += Math.pow((1 - currentOutputNeuronValue), 2);
         }
 
