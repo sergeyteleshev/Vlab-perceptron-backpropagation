@@ -228,22 +228,6 @@ function getHTML(templateData) {
         }
     }
 
-    //todo не работает добавление строки в таблицу из-за формулы
-    tableData += `<tr>
-        <td>
-            ${templateData.currentSelectedNodeId ? templateData.currentSelectedNodeId : ""}
-        </td>
-        <td>
-            <input ${templateData.isBackpropagationDone === false ? "disabled" : ""} class="currentNeuronInputSignalFormula" placeholder="Введите числовую формулу" class="tableInputData" type="text""/>
-        </td>
-        <td>
-            <input ${templateData.isBackpropagationDone === false ? "disabled" : ""} class="currentNeuronInputSignalValue" placeholder="Введите число" class="tableInputData" type="number""/>
-        </td>
-        <td>
-            <input ${templateData.isBackpropagationDone === false ? "disabled" : ""} class="currentNeuronOutputSignalValue" placeholder="Введите число" class="tableInputData" type="number""/>
-        </td>
-    </tr>`;
-
     return `
         <div class="lab">
             <table class="lab-table">
@@ -317,20 +301,7 @@ function getHTML(templateData) {
                                     <th>NEW W</th>
                                 </tr>                
                                 ${backPropagationData}
-                            </table>                                                     
-                            <div class="steps-buttons">
-                                <input id="addStep" class="addStep btn btn-success" type="button" value="+"/>
-                                <input type="button" class="minusStep btn btn-danger" value="-">
-                            </div>  
-                            <table class="steps-table">
-                                <tr>
-                                    <th>№ нейрона</th>
-                                    <th>Формула входного сигнала</th>
-                                    <th>Значение входного сигнала</th>
-                                    <th>Значение выходного сигнала</th>
-                                </tr>                        
-                                ${tableData}                                        
-                            </table>                             
+                            </table>                                                                                                              
                             <div class="maxFlow">
                                 <span>MSE:</span>
                                 <input type='number' ${countInvalidNodesValue !== 0 || templateData.isBackpropagationDone === false ? "disabled" : ""} class='maxFlow-input' id="error" value="${templateData.error}"'/>                       
@@ -392,7 +363,7 @@ function subscriber() {
             if (!events[event]) {
                 events[event] = [fn]
             } else {
-                events[event].push(fn);
+                events[event] = [fn];
             }
 
         },
@@ -785,14 +756,16 @@ function init_lab() {
 
         //Инициализация ВЛ
         init: function () {
+            const root = document.getElementById('jsLab');
+
             if(document.getElementById("preGeneratedCode"))
             {
                 if(document.getElementById("preGeneratedCode").value !== "")
                 {
                     const state = appInstance.state.updateState((state) => {
-                        console.log(document.getElementById("preGeneratedCode").value, 'beforeParse');
+                        // console.log(document.getElementById("preGeneratedCode").value, 'beforeParse');
                         let graph = JSON.parse(document.getElementById("preGeneratedCode").value);
-                        console.log(graph);
+                        // console.log(graph);
                         return {
                             ...state,
                             ...graph,
@@ -808,11 +781,10 @@ function init_lab() {
                 }
             });
 
-            const root = document.getElementById('jsLab');
-
             // основная функция для рендеринга
             const render = (state) => {
                 console.log('state', state);
+                console.log(appInstance);
                 renderTemplate(root, getHTML({...state}));
                 renderDag(state, appInstance);
                 bindActionListeners(appInstance);
