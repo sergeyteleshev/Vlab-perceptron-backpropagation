@@ -20,7 +20,44 @@ const test_graph = {
     outputNeuronsAmount: 1,
     amountOfNodesInHiddenLayer: 1,
     edgesAmount: 6,
+    newNodesValue: [],
+    initialNodesValue: [],
 };
+
+function getNodesSignal(nodes, edges, nodesValue, inputNeuronsAmount)
+{
+    for(let i = inputNeuronsAmount; i < nodes.length; i++)
+    {
+        let nodeInputSignal = 0;
+        let nodeOutputSignal = 0;
+
+        for(let j = 0; j < i; j++)
+        {
+            if(edges[j][i] === 1)
+            {
+                nodeInputSignal += nodesValue[j] * nodesValue[i];
+            }
+        }
+
+        nodeInputSignal = roundToTwoDecimals(nodeInputSignal);
+        nodeOutputSignal = sigmoid(nodeInputSignal);
+        nodeOutputSignal= roundToTwoDecimals(nodeOutputSignal);
+
+        nodesValue[i] = nodeOutputSignal;
+    }
+
+    return nodesValue;
+}
+
+function roundToTwoDecimals(x)
+{
+    return Math.round(x * 100)  / 100
+}
+
+function sigmoid(x)
+{
+    return (1 / (1 + Math.exp(-x)));
+}
 
 function dataToSigma(state) {
     let edges = state.edges;
@@ -48,8 +85,8 @@ function dataToSigma(state) {
     }
 
     nodesLevelAmount.map(el => {
-       if (maxLevel < el)
-        maxLevel = el;
+        if (maxLevel < el)
+            maxLevel = el;
     });
 
     for (let i = 0; i < edges.length; i++) {
@@ -329,6 +366,8 @@ function initState() {
         currentGrad: null,
         currentDeltaW: null,
         currentNewW: null,
+        newNodesValue: [],
+        initialNodesValue: [],
     };
 
     return {
@@ -348,7 +387,7 @@ function subscriber() {
     return {
         subscribe: function (event, fn) {
             if (!events[event]) {
-                events[event] = [fn]
+                events[event] = [fn];
             } else {
                 events[event] = [fn];
             }
@@ -370,7 +409,7 @@ function bindActionListeners(appInstance)
 {
     document.getElementsByClassName('redrawGraph')[0].addEventListener('click', () => {
         const state = appInstance.state.updateState((state) => {
-            let yLevelRandomDisplacement = state.nodes.map(node => {
+            let yLevelRandomDisplacement = state.nodes.map(() => {
                 return 2 + Math.random() * 3; //смещение ноты по Y из-за того, что не видно значение ребра при отрисовке
             });
 
@@ -418,17 +457,19 @@ function bindActionListeners(appInstance)
             let prevEdge = state.currentEdge.slice();
             let selectedEdges = state.selectedEdges.slice();
             let isBackpropagationDone = false;
+            let nodes = state.nodes;
+            let edges = state.edges;
+            let inputNeuronsAmount = state.inputNeuronsAmount;
+            let newNodesValue = state.newNodesValue;
 
             selectedEdges.push("w" + state.currentEdge[0] + state.currentEdge[1]);
 
             if(selectedEdges.length === state.edgesAmount)
             {
                 isBackpropagationDone = true;
-                for(let i = 0; i < nodesValue.length; i++)
-                {
-                    if(i >= state.inputNeuronsAmount)
-                        nodesValue[i] = null;
-                }
+
+                nodesValue = getNodesSignal(nodes, edges, nodesValue, inputNeuronsAmount);
+                newNodesValue = nodesValue.slice();
 
                 for(let i = 0; i < edgesTableData.length; i++)
                     edgeWeight[edgesTableData[i].edge[0]][edgesTableData[i].edge[1]] = edgesTableData[i].newW;
@@ -458,6 +499,7 @@ function bindActionListeners(appInstance)
             return  {
                 ...state,
                 edgeWeight,
+                newNodesValue,
                 nodesValue,
                 isBackpropagationDone,
                 currentEdgeStep,
@@ -670,6 +712,7 @@ function init_lab() {
                 const state = appInstance.state.updateState((state) => {
                     let graph = JSON.parse(document.getElementById("preGeneratedCode").value);
                     let nodes = graph.nodes;
+                    let initialNodesValue = graph.nodesValue.slice();
                     let yLevelRandomDisplacement = nodes.map(node => {
                         return 2 + Math.random() * 3; //смещение ноты по Y из-за того, что не видно значение ребра при отрисовке
                     });
@@ -678,6 +721,7 @@ function init_lab() {
                         ...state,
                         ...graph,
                         yLevelRandomDisplacement,
+                        initialNodesValue,
                     }
                 });
             }

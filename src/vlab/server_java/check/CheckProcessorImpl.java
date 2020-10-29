@@ -45,27 +45,28 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         JSONArray nodesValue = jsonCode.getJSONArray("nodesValue");
 
         JSONArray serverAnswer = jsonObjectToJsonArray(generateRightAnswer(nodes, edges, nodesValue, edgeWeight));
-        JSONArray clientAnswer = jsonInstructions.getJSONArray("neuronsTableData");
-
-        double checkError = countMSE(serverAnswer);
-        checkError = (double) Math.round(checkError * 100) / 100;
-
-        JSONObject compareResult = compareAnswers(serverAnswer, clientAnswer, Consts.tablePoints);
-
-        double comparePoints = compareResult.getDouble("points");
-
-        String compareComment = compareResult.getString("comment");
-        comment += compareComment;
-
-        points += comparePoints;
-
-        if(checkError == error)
-            points += Consts.errorPoints;
-        else
-            comment += "Wrong MSE. ";
-
-        if(points == 1.0)
-            comment += "Perfect!";
+        JSONArray clientAnswer = jsonInstructions.getJSONArray("edgesTableData");
+//
+//
+//        double checkError = countMSE(serverAnswer);
+//        checkError = (double) Math.round(checkError * 100) / 100;
+//
+//        JSONObject compareResult = compareAnswers(serverAnswer, clientAnswer, Consts.tablePoints);
+//
+//        double comparePoints = compareResult.getDouble("points");
+//
+//        String compareComment = compareResult.getString("comment");
+//        comment += compareComment;
+//
+//        points += comparePoints;
+//
+//        if(checkError == error)
+//            points += Consts.errorPoints;
+//        else
+//            comment += "Wrong MSE. ";
+//
+//        if(points == 1.0)
+//            comment += "Perfect!";
 
         double[] signalOutputArray = new double[nodesValue.length()];
         double[] serverAnswerNeuronOutputSignalValue = getDoublerrayByKey(serverAnswer, "neuronOutputSignalValue");
@@ -82,10 +83,11 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
         }
 
-        JSONObject test = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
-        double newError = 0;
+        JSONObject backpropagationAnswer = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
+        JSONArray nodesValueJsonArray = new JSONArray(serverAnswerNeuronOutputSignalValue);
+        double newError = countMSE(nodesValueJsonArray);
 
-        return new CheckingSingleConditionResult(BigDecimal.valueOf(points), test.toString());
+        return new CheckingSingleConditionResult(BigDecimal.valueOf(points), Double.toString(newError));
     }
 
     public static JSONArray jsonObjectToJsonArray(JSONObject jsonObject)

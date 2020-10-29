@@ -41,8 +41,8 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         Object[] nodesValue = new Object[nodesAmount];
         float[][] edgeWeight = new float[nodesAmount][nodesAmount];
         int[] nodesLevel = new int[nodesAmount];
-        double initialGraphMSE = 0;
-        int edgesAmount = countEdges(edges);
+        double initialGraphMSE;
+        int edgesAmount;
 
         //начальные значения для рецепторов
         for(int i = 0; i < nodesAmount; i++)
@@ -95,6 +95,8 @@ public class GenerateProcessorImpl implements GenerateProcessor {
                 }
             }
         }
+
+        edgesAmount = countEdges(edges);
 
         graph.put("edgeWeight", edgeWeight);
         graph.put("nodes", nodes);
