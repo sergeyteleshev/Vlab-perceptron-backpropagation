@@ -46,27 +46,6 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
         JSONArray serverAnswer = jsonObjectToJsonArray(generateRightAnswer(nodes, edges, nodesValue, edgeWeight));
         JSONArray clientAnswer = jsonInstructions.getJSONArray("edgesTableData");
-//
-//
-//        double checkError = countMSE(serverAnswer);
-//        checkError = (double) Math.round(checkError * 100) / 100;
-//
-//        JSONObject compareResult = compareAnswers(serverAnswer, clientAnswer, Consts.tablePoints);
-//
-//        double comparePoints = compareResult.getDouble("points");
-//
-//        String compareComment = compareResult.getString("comment");
-//        comment += compareComment;
-//
-//        points += comparePoints;
-//
-//        if(checkError == error)
-//            points += Consts.errorPoints;
-//        else
-//            comment += "Wrong MSE. ";
-//
-//        if(points == 1.0)
-//            comment += "Perfect!";
 
         double[] signalOutputArray = new double[nodesValue.length()];
         double[] serverAnswerNeuronOutputSignalValue = getDoublerrayByKey(serverAnswer, "neuronOutputSignalValue");
@@ -84,10 +63,61 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         }
 
         JSONObject backpropagationAnswer = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
+        JSONObject convertedClientAnswer = convertClientAnswer(clientAnswer);
         JSONArray nodesValueJsonArray = new JSONArray(serverAnswerNeuronOutputSignalValue);
         double newError = countMSE(nodesValueJsonArray);
 
-        return new CheckingSingleConditionResult(BigDecimal.valueOf(points), Double.toString(newError));
+        JSONObject compareResult = compareAnswers(backpropagationAnswer, convertedClientAnswer, Consts.tablePoints);
+        double comparePoints = compareResult.getDouble("points");
+        String compareComment = compareResult.getString("comment");
+        comment += compareComment;
+        points += comparePoints;
+
+        if (error != newError)
+            comment += "Неверно посчитанно новое MSE.";
+        else
+            points += Consts.errorPoints;
+
+        return new CheckingSingleConditionResult(BigDecimal.valueOf(points), comment);
+    }
+
+    private static JSONObject convertClientAnswer(JSONArray clientAnswer)
+    {
+        int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
+        JSONObject clientAnswerConverted = new JSONObject();
+        double[][] newW = new double[nodesAmount][nodesAmount];
+        double[] delta = new double[nodesAmount];
+        double[][] deltaW = new double[nodesAmount][nodesAmount];
+        double[][] grad = new double[nodesAmount][nodesAmount];
+
+        for (int i = 0; i < nodesAmount; i++)
+        {
+            delta[i] = 0;
+            for (int j = 0; j < nodesAmount; j++)
+            {
+                newW[i][j] = 0;
+                deltaW[i][j] = 0;
+                grad[i][j] = 0;
+            }
+        }
+
+        for (int i = 0; i < nodesAmount; i++)
+        {
+            int nodeFromIndex = clientAnswer.getJSONObject(i).getJSONArray("edge").getInt(0);
+            int nodeToIndex = clientAnswer.getJSONObject(i).getJSONArray("edge").getInt(1);
+
+            newW[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("newW");
+            delta[i] = clientAnswer.getJSONObject(i).getDouble("delta");
+            deltaW[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("deltaW");
+            grad[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("grad");
+        }
+
+        clientAnswerConverted.put("newW", newW);
+        clientAnswerConverted.put("delta", delta);
+        clientAnswerConverted.put("deltaW", deltaW);
+        clientAnswerConverted.put("grad", grad);
+
+        return clientAnswerConverted;
     }
 
     public static JSONArray jsonObjectToJsonArray(JSONObject jsonObject)
@@ -125,86 +155,54 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
-    private static JSONObject compareAnswers(JSONArray serverAnswer, JSONArray clientAnswer, double pointPercent)
+    private static JSONObject compareAnswers(JSONObject serverAnswer, JSONObject clientAnswer, double pointPercent)
     {
+        int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
         double pointDelta = pointPercent / serverAnswer.length();
-        double points = 0;
+        double points = pointPercent;
         JSONObject result = new JSONObject();
         StringBuilder comment = new StringBuilder();
 
-        JSONArray sortedServerAnswer = sortJsonArrays(serverAnswer.toString(), "nodeId");
-        JSONArray sortedClientAnswer = sortJsonArrays(clientAnswer.toString(), "nodeId");
-        ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+        double[] serverDelta = (double[]) serverAnswer.get("delta");
+        double[] clientDelta = (double[]) clientAnswer.get("delta");
 
-        for(int i = 0; i < sortedClientAnswer.length(); i++)
+        double[][] serverNewW = (double[][]) serverAnswer.get("newW");
+        double[][] clientNewW = (double[][]) clientAnswer.get("newW");
+
+        double[][] serverGrad = (double[][]) serverAnswer.get("grad");
+        double[][] clientGrad = (double[][]) clientAnswer.get("grad");
+
+        double[][] serverDeltaW = (double[][]) serverAnswer.get("deltaW");
+        double[][] clientDeltaW = (double[][]) clientAnswer.get("deltaW");
+
+        for (int i = 0; i < nodesAmount; i++)
         {
-            boolean isNeuronInputSignalValueCorrect = false;
-            boolean isNeuronOutputSignalValueCorrect = false;
-            boolean isNeuronInputSignalFormulaCorrect = false;
-            boolean isNeuronNodeSectionCorrect = false;
-
-            if(sortedClientAnswer.getJSONObject(i).getDouble("neuronInputSignalValue") ==
-                    sortedServerAnswer.getJSONObject(i).getDouble("neuronInputSignalValue"))
+            if(serverDelta[i] != clientDelta[i])
             {
-                isNeuronInputSignalValueCorrect = true;
-            }
-            else
-            {
-                comment.append("Incorrect value of neuron input signal ").append(sortedClientAnswer.getJSONObject(i).getString("nodeId")).append(". ");
+                points -= pointDelta / nodesAmount;
+                comment.append("Неверно рассчитано delta вершины n").append(Integer.toString(i)).append(". ");
             }
 
-            if(sortedClientAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue") ==
-                    sortedServerAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue"))
+            for (int j = 0; j < nodesAmount; j++)
             {
-                isNeuronOutputSignalValueCorrect = true;
-            }
-            else
-            {
-                comment.append("Incorrect value of neuron output signal ").append(sortedClientAnswer.getJSONObject(i).getString("nodeId")).append(". ");
-            }
-
-            try {
-                double clientCountedFormula = new Double(engine.eval(sortedClientAnswer.getJSONObject(i).getString("neuronInputSignalFormula")).toString());
-                clientCountedFormula = (double) Math.round(clientCountedFormula * 100) / 100;
-                if(clientCountedFormula ==
-                        sortedServerAnswer.getJSONObject(i).getDouble("countedFormula"))
+                if(serverNewW[i][j] != clientNewW[i][j])
                 {
-                    isNeuronInputSignalFormulaCorrect = true;
+                    points -= pointDelta / nodesAmount;
+                    comment.append("Неверно рассчитано NewW ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
                 }
-                else
+
+                if(serverGrad[i][j] != clientGrad[i][j])
                 {
-                    comment.append(" Incorrect formula of neuron output signal ").append(sortedClientAnswer.getJSONObject(i).getString("nodeId")).append(". ");
+                    points -= pointDelta / nodesAmount;
+                    comment.append("Неверно рассчитано grad ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
                 }
-            } catch (ScriptException e) {
-                e.printStackTrace();
+
+                if(serverDeltaW[i][j] != clientDeltaW[i][j])
+                {
+                    points -= pointDelta / nodesAmount;
+                    comment.append("Неверно рассчитано deltaW ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                }
             }
-
-            if(compareArrays(sortedClientAnswer.getJSONObject(i).getJSONArray("nodeSection"), sortedServerAnswer.getJSONObject(i).getJSONArray("nodeSection")))
-            {
-                isNeuronNodeSectionCorrect = true;
-            }
-            else
-            {
-                comment.append("Incorrect selection of signal source neurons").append(sortedClientAnswer.getJSONObject(i).getString("nodeId")).append(". ");
-            }
-
-            if(isNeuronInputSignalFormulaCorrect)
-                points += pointDelta / 4;
-
-            if(isNeuronInputSignalValueCorrect)
-                points += pointDelta / 4;
-
-            if(isNeuronOutputSignalValueCorrect)
-                points += pointDelta / 4;
-
-            if(isNeuronNodeSectionCorrect)
-                points += pointDelta / 4;
-        }
-
-        int rowsDiff = serverAnswer.length() - clientAnswer.length();
-        if(rowsDiff > 0)
-        {
-            comment.append("Missing ").append(String.valueOf(rowsDiff)).append(" rows in table. ");
         }
 
         result.put("points", points);
@@ -242,62 +240,6 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
-    private static JSONArray sortJsonArrays(String jsonArrStr, String KEY_NAME)
-    {
-        JSONArray jsonArr = new JSONArray(jsonArrStr);
-        JSONArray sortedJsonArray = new JSONArray();
-
-        List<JSONObject> jsonValues = new ArrayList<JSONObject>();
-        for (int i = 0; i < jsonArr.length(); i++) {
-            jsonValues.add(jsonArr.getJSONObject(i));
-        }
-        Collections.sort( jsonValues, new Comparator<JSONObject>() {
-            //You can change "Name" with "ID" if you want to sort by ID
-            @Override
-            public int compare(JSONObject a, JSONObject b) {
-                String valA = new String();
-                String valB = new String();
-
-                try {
-                    valA = (String) a.get(KEY_NAME);
-                    valB = (String) b.get(KEY_NAME);
-                }
-                catch (JSONException e) {
-                    //do something
-                }
-
-                return valA.compareTo(valB);
-                //if you want to change the sort order, simply use the following:
-                //return -valA.compareTo(valB);
-            }
-        });
-
-        for (int i = 0; i < jsonArr.length(); i++) {
-            sortedJsonArray.put(jsonValues.get(i));
-        }
-
-        return sortedJsonArray;
-    }
-
-    private static boolean compareArrays(JSONArray arr1, JSONArray arr2) {
-        Object[] normalArr1 = new Object[arr1.length()];
-        Object[] normalArr2 = new Object[arr2.length()];
-
-        for(int i = 0; i < arr1.length(); i++)
-        {
-            normalArr1[i] = arr1.get(i);
-        }
-
-        for(int i = 0; i < arr2.length(); i++)
-        {
-            normalArr2[i] = arr2.get(i);
-        }
-
-        Arrays.sort(normalArr1);
-        Arrays.sort(normalArr2);
-        return Arrays.equals(normalArr1, normalArr2);
-    }
-
     private static double getSigmoidValue(double x)
     {
         return (1 / (1 + Math.exp(-x)));
@@ -306,22 +248,6 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
     private double getHiperbolicTangensValue(double x)
     {
         return (2 / (1 + Math.exp(-2 * x)));
-    }
-
-    private static JSONArray sortJsonArrayWithoutKey(JSONArray jsonArr)
-    {
-        String[] stringArr = new String[jsonArr.length()];
-
-        for(int i = 0; i < jsonArr.length(); i++)
-        {
-            stringArr[i] = jsonArr.getString(i);
-        }
-
-        Arrays.sort(stringArr);
-        Gson gson=new GsonBuilder().create();
-        String jsonArray = gson.toJson(stringArr);
-
-        return new JSONArray(jsonArray);
     }
 
     public static JSONObject generateRightAnswer(JSONArray nodes, JSONArray edges, JSONArray nodesValue, JSONArray edgeWeight)
@@ -475,8 +401,10 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
         }
 
-        result.put("neuronOutputSignalValue", neuronOutputSignalValue);
-        result.put("edgesWeight", edgesWeight);
+        result.put("newW", edgesWeight);
+        result.put("delta", delta);
+        result.put("deltaW", deltaW);
+        result.put("grad", grad);
 
         return result;
     }
