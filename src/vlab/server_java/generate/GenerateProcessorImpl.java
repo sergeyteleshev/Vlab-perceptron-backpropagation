@@ -113,7 +113,7 @@ public class GenerateProcessorImpl implements GenerateProcessor {
             {0,0,0,0,0},
         };
         int[] nodes = {0,1,2,3,4};
-        Object[] nodesValue = {1,0,0.61,0.69,0.33};
+        double[] nodesValue = {1,0,0.61,0.69,0.33};
         double[][] edgeWeight = {
             {0,0,0.45,0.78,0},
             {0,0,-0.12,0.13,0},
@@ -146,9 +146,34 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         JSONArray jsonNodesValue = jsonCode.getJSONArray("nodesValue");
         initialGraphMSE = doubleToTwoDecimal(countMSE(jsonNodesValue));
 
-        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE);
+        JSONObject backpropagationAnswer = backpropagation(nodesValue, edgeWeight);
+
+        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + " " + backpropagationAnswerToReadble(backpropagationAnswer);
 
         return new GeneratingResult(text, code, instructions);
+    }
+
+    private String backpropagationAnswerToReadble(JSONObject backpropagationAnswer)
+    {
+        StringBuilder result = new StringBuilder();
+        double[] delta = (double[]) backpropagationAnswer.get("delta");
+        double[][] grad = (double[][]) backpropagationAnswer.get("grad");
+        double[][] deltaW = (double[][]) backpropagationAnswer.get("deltaW");
+        double[][] newW = (double[][]) backpropagationAnswer.get("newW");
+
+        for (int i = 0; i < delta.length; i++)
+        {
+            for (int j = 0; j < delta.length; j++)
+            {
+                result.append(" w").append(i).append(j).append(":");
+                result.append(" delta = ").append(delta[j]);
+                result.append(" grad = ").append(grad[i][j]);
+                result.append(" deltaW = ").append(deltaW[i][j]);
+                result.append(" newW = ").append(newW[i][j]);
+            }
+        }
+
+        return result.toString();
     }
 
     private int countEdges(int[][] edges)

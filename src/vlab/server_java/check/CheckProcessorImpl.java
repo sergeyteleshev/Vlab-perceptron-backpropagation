@@ -1,9 +1,5 @@
 package vlab.server_java.check;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import rlcp.check.ConditionForChecking;
 import rlcp.generate.GeneratingResult;
@@ -17,8 +13,7 @@ import javax.script.ScriptException;
 import java.math.BigDecimal;
 import java.util.*;
 
-import static vlab.server_java.Consts.doubleToTwoDecimal;
-import static vlab.server_java.Consts.outputNeuronsAmount;
+import static vlab.server_java.Consts.*;
 
 /**
  * Simple CheckProcessor implementation. Supposed to be changed as needed to provide
@@ -74,7 +69,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         points += comparePoints;
 
         if (error != newError)
-            comment += "Неверно посчитанно новое MSE.";
+            comment += "Неверно посчитанно новое MSE. MSE = " + newError;
         else
             points += Consts.errorPoints;
 
@@ -155,6 +150,15 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
+    public static double[] addToBeginOfArray(double[] elements, int element)
+    {
+        double[] newArray = Arrays.copyOf(elements, elements.length + 1);
+        newArray[0] = element;
+        System.arraycopy(elements, 0, newArray, 1, elements.length);
+
+        return newArray;
+    }
+
     private static JSONObject compareAnswers(JSONObject serverAnswer, JSONObject clientAnswer, double pointPercent)
     {
         int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
@@ -177,7 +181,15 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
         for (int i = 0; i < nodesAmount; i++)
         {
-            if(serverDelta[i] != clientDelta[i])
+            boolean isDeltaCorrect = false;
+
+            for (int k = inputNeuronsAmount; k < nodesAmount; k++)
+            {
+                if(serverDelta[k] == clientDelta[i])
+                    isDeltaCorrect = true;
+            }
+
+            if(!isDeltaCorrect)
             {
                 points -= pointDelta / nodesAmount;
                 comment.append("Неверно рассчитано delta вершины n").append(Integer.toString(i)).append(". ");
@@ -197,6 +209,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                     comment.append("Неверно рассчитано grad ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
                 }
 
+                //todo с клиента почему-то не приходит значение послденего нового ребра
                 if(serverDeltaW[i][j] != clientDeltaW[i][j])
                 {
                     points -= pointDelta / nodesAmount;
