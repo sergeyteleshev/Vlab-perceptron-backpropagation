@@ -751,6 +751,7 @@ function init_lab() {
         getCondition: function () {
         },
         getResults: function () {
+            console.log('getResults', appInstance.state.getState());
             return appInstance.state.getState();
         },
         calculateHandler: function (text, code) {

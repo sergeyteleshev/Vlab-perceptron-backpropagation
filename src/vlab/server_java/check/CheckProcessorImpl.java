@@ -60,7 +60,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         JSONObject backpropagationAnswer = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
         JSONObject convertedClientAnswer = convertClientAnswer(clientAnswer);
         JSONArray nodesValueJsonArray = new JSONArray(serverAnswerNeuronOutputSignalValue);
-        double newError = countMSE(nodesValueJsonArray);
+        double newError = doubleToTwoDecimal(countMSE(nodesValueJsonArray));
 
         JSONObject compareResult = compareAnswers(backpropagationAnswer, convertedClientAnswer, Consts.tablePoints);
         double comparePoints = compareResult.getDouble("points");
@@ -76,19 +76,55 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return new CheckingSingleConditionResult(BigDecimal.valueOf(points), comment);
     }
 
+    //todo пофиксить MSE. сейчас он считает MSE для графа до МОРа
+    private static JSONArray getSignalWithNewEdges(JSONArray nodes, JSONArray edges, JSONArray edgeWeight, JSONArray nodesValue)
+    {
+        JSONArray jsonNeuronInputSignalValue = new JSONArray();
+        JSONArray jsonNeuronOutputSignalValue = new JSONArray();
+
+        for(int i = Consts.inputNeuronsAmount; i < nodes.length(); i++)
+        {
+            double currentNodeValue = 0;
+
+            for(int j = 0; j < edges.getJSONArray(i).length(); j++)
+            {
+                if(edges.getJSONArray(j).getInt(i) == 1)
+                {
+                    currentNodeValue += nodesValue.getDouble(j) * edgeWeight.getJSONArray(j).getDouble(i);
+                }
+            }
+
+            jsonNeuronInputSignalValue.put(i, doubleToTwoDecimal(currentNodeValue));
+
+            currentNodeValue = getSigmoidValue(currentNodeValue);
+            currentNodeValue = doubleToTwoDecimal(currentNodeValue);
+            nodesValue.put(i, currentNodeValue);
+
+            jsonNeuronOutputSignalValue.put(i, currentNodeValue);
+        }
+
+        //избавляемся от ненужных null для входных нейронов, которые уже изначально даны по условию, чтобы у нас был одинаково похожий объект с clientData
+        for(int i = 0; i < Consts.inputNeuronsAmount; i++)
+        {
+            jsonNeuronInputSignalValue.remove(0);
+            jsonNeuronOutputSignalValue.remove(0);
+        }
+
+        return jsonNeuronOutputSignalValue;
+    }
+
     private static JSONObject convertClientAnswer(JSONArray clientAnswer)
     {
-        int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
         JSONObject clientAnswerConverted = new JSONObject();
-        double[][] newW = new double[nodesAmount][nodesAmount];
-        double[] delta = new double[nodesAmount];
-        double[][] deltaW = new double[nodesAmount][nodesAmount];
-        double[][] grad = new double[nodesAmount][nodesAmount];
+        double[][] newW = new double[clientAnswer.length()][clientAnswer.length()];
+        double[] delta = new double[clientAnswer.length()];
+        double[][] deltaW = new double[clientAnswer.length()][clientAnswer.length()];
+        double[][] grad = new double[clientAnswer.length()][clientAnswer.length()];
 
-        for (int i = 0; i < nodesAmount; i++)
+        for (int i = 0; i < clientAnswer.length(); i++)
         {
             delta[i] = 0;
-            for (int j = 0; j < nodesAmount; j++)
+            for (int j = 0; j < clientAnswer.length(); j++)
             {
                 newW[i][j] = 0;
                 deltaW[i][j] = 0;
@@ -96,7 +132,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
         }
 
-        for (int i = 0; i < nodesAmount; i++)
+        for (int i = 0; i < clientAnswer.length(); i++)
         {
             int nodeFromIndex = clientAnswer.getJSONObject(i).getJSONArray("edge").getInt(0);
             int nodeToIndex = clientAnswer.getJSONObject(i).getJSONArray("edge").getInt(1);
