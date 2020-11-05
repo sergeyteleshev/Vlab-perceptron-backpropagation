@@ -1,5 +1,9 @@
 package vlab.server_java;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+
 public class Consts
 {
     public static final int minInputNeuronValue = 0;
@@ -13,6 +17,6 @@ public class Consts
 
     public static double doubleToTwoDecimal(double number)
     {
-        return (double) Math.round(number * 100)  / 100;
+        return Math.round(number * 100.0) / 100.0;
     }
 }

@@ -24,7 +24,7 @@ const test_graph = {
     initialNodesValue: [],
 };
 
-function getNodesSignal(nodes, edges, nodesValue, inputNeuronsAmount)
+function getNodesSignal(nodes, edges, edgesWeight, nodesValue, inputNeuronsAmount)
 {
     for(let i = inputNeuronsAmount; i < nodes.length; i++)
     {
@@ -35,7 +35,7 @@ function getNodesSignal(nodes, edges, nodesValue, inputNeuronsAmount)
         {
             if(edges[j][i] === 1)
             {
-                nodeInputSignal += nodesValue[j] * nodesValue[i];
+                nodeInputSignal += nodesValue[j] * edgesWeight[j][i];
             }
         }
 
@@ -51,7 +51,7 @@ function getNodesSignal(nodes, edges, nodesValue, inputNeuronsAmount)
 
 function roundToTwoDecimals(x)
 {
-    return Math.round(x * 100)  / 100
+    return Math.round((x + Number.EPSILON) * 100) / 100;
 }
 
 function sigmoid(x)
@@ -381,6 +381,48 @@ function initState() {
     }
 }
 
+function convertEdgesTableDataToMatrix(clientAnswer)
+{
+    console.log(clientAnswer);
+    let newW = [];
+    let delta = [];
+    let deltaW = [];
+    let grad = [];
+
+    for (let i = 0; i < clientAnswer.length; i++)
+    {
+        delta.push(0);
+        newW.push([]);
+        deltaW.push([]);
+        grad.push([]);
+
+        for (let j = 0; j < clientAnswer.length; j++)
+        {
+            newW[i].push(0);
+            deltaW[i].push(0);
+            grad[i].push(0);
+        }
+    }
+
+    for (let i = 0; i < clientAnswer.length; i++)
+    {
+        let nodeFromIndex = +clientAnswer[i].edge[0];
+        let nodeToIndex = +clientAnswer[i].edge[1];
+
+        newW[nodeFromIndex][nodeToIndex] = clientAnswer[i].newW;
+        delta[i] = clientAnswer[i].delta;
+        deltaW[nodeFromIndex][nodeToIndex] = clientAnswer[i].deltaW;
+        grad[nodeFromIndex][nodeToIndex] = clientAnswer[i].grad;
+    }
+
+    return {
+        newW,
+        delta,
+        deltaW,
+        grad
+    };
+}
+
 function subscriber() {
     const events = {};
 
@@ -468,7 +510,9 @@ function bindActionListeners(appInstance)
             {
                 isBackpropagationDone = true;
 
-                nodesValue = getNodesSignal(nodes, edges, nodesValue, inputNeuronsAmount);
+                let newEdgesWeight = convertEdgesTableDataToMatrix(edgesTableData).newW;
+                console.log("newEdgesWeight", newEdgesWeight);
+                nodesValue = getNodesSignal(nodes, edges, newEdgesWeight, nodesValue, inputNeuronsAmount);
                 newNodesValue = nodesValue.slice();
 
                 for(let i = 0; i < edgesTableData.length; i++)
@@ -751,6 +795,7 @@ function init_lab() {
         getCondition: function () {
         },
         getResults: function () {
+            console.log('getResults', appInstance.state.getState());
             return appInstance.state.getState();
         },
         calculateHandler: function (text, code) {

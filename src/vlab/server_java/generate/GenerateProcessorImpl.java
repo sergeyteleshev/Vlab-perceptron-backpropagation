@@ -24,106 +24,109 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 
         JSONObject graph = new JSONObject();
 
-//        int minInputNeuronValue = Consts.minInputNeuronValue;
-//        int maxInputNeuronValue = Consts.maxInputNeuronValue;
-//        int inputNeuronsAmount = Consts.inputNeuronsAmount;
-//        int outputNeuronsAmount = Consts.outputNeuronsAmount;
-//
-//        int amountOfHiddenLayers = Consts.amountOfHiddenLayers;
-//        int amountOfNodesInHiddenLayer = Consts.amountOfNodesInHiddenLayer;
-//        int[] hiddenLayerNodesAmount = new int[amountOfHiddenLayers];
-//        int currentHiddenLayer = 2;
-//
-//        int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers; //всего вершин в графе
-//
-//        int[][] edges = new int[nodesAmount][nodesAmount];
-//        int[] nodes = new int[nodesAmount];
-//        Object[] nodesValue = new Object[nodesAmount];
-//        float[][] edgeWeight = new float[nodesAmount][nodesAmount];
-//        int[] nodesLevel = new int[nodesAmount];
-//        double initialGraphMSE;
-//        int edgesAmount;
-//
-//        //начальные значения для рецепторов
-//        for(int i = 0; i < nodesAmount; i++)
-//        {
-//            nodesLevel[i] = 1;
-//            int nodesLevelTemp = (int) ((int) minInputNeuronValue + (float)(Math.random() * ((maxInputNeuronValue - minInputNeuronValue) + 1)) * 100);
-//            nodesValue[i] = (float) nodesLevelTemp / 100;
-//        }
-//
-//        for(int i = 1; i <= outputNeuronsAmount; i++)
-//        {
-//            nodesLevel[nodesLevel.length - i] = 1 + amountOfHiddenLayers + 1;
-//        }
-//
-//        //уровни словёв
-//        int countTemp = 0;
-//        int amountOfNodesBeforeOutputNeurons = inputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers;
-//        for(int i = inputNeuronsAmount; i < amountOfNodesBeforeOutputNeurons; i++)
-//        {
-//            nodesLevel[i] = currentHiddenLayer;
-//            countTemp++;
-//            if(countTemp % amountOfNodesInHiddenLayer == 0 && countTemp != 0)
-//            {
-//                currentHiddenLayer++;
-//            }
-//        }
-//
-//        for(int i = 0; i < nodesAmount; i++)
-//        {
-//            nodes[i] = i;
-//        }
-//
-//        for(int i = 0; i < nodesAmount; i++)
-//        {
-//            int currentNodeLevel = nodesLevel[i];
-//
-//            for(int j = 0; j < nodesLevel.length; j++)
-//            {
-//                if(nodesLevel[j] == currentNodeLevel + 1)
-//                {
-//                    edges[i][j] = 1;
-//                    // от -1 до 1 с двумя знаками после запятой
-//                    edgeWeight[i][j] = (int)(((float)(Math.random() * ((1 + 1) + 1)) - 1) * 100);
-//                    edgeWeight[i][j] = (float) (edgeWeight[i][j]) / 100;
-//                }
-//                else
-//                {
-//                    edges[i][j] = 0;
-//                    edgeWeight[i][j] = 0;
-//                }
-//            }
-//        }
+        int minInputNeuronValue = Consts.minInputNeuronValue;
+        int maxInputNeuronValue = Consts.maxInputNeuronValue;
+        int inputNeuronsAmount = Consts.inputNeuronsAmount;
+        int outputNeuronsAmount = Consts.outputNeuronsAmount;
 
-        int inputNeuronsAmount = 2;
-        int outputNeuronsAmount = 1;
-
-        int amountOfHiddenLayers = 1;
-        int amountOfNodesInHiddenLayer = 2;
+        int amountOfHiddenLayers = Consts.amountOfHiddenLayers;
+        int amountOfNodesInHiddenLayer = Consts.amountOfNodesInHiddenLayer;
         int[] hiddenLayerNodesAmount = new int[amountOfHiddenLayers];
+        int currentHiddenLayer = 2;
 
         int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers; //всего вершин в графе
 
-        int[][] edges = {
-            {0,0,1,1,0},
-            {0,0,1,1,0},
-            {0,0,0,0,1},
-            {0,0,0,0,1},
-            {0,0,0,0,0},
-        };
-        int[] nodes = {0,1,2,3,4};
-        double[] nodesValue = {1,0,0.61,0.69,0.33};
-        double[][] edgeWeight = {
-            {0,0,0.45,0.78,0},
-            {0,0,-0.12,0.13,0},
-            {0,0,0,0,1.5},
-            {0,0,0,0,-2.3},
-            {0,0,0,0,0},
-        };
-        int[] nodesLevel = {1,1,2,2,3};
+        int[][] edges = new int[nodesAmount][nodesAmount];
+        int[] nodes = new int[nodesAmount];
+        double[] nodesValue = new double[nodesAmount];
+        double[][] edgeWeight = new double[nodesAmount][nodesAmount];
+        int[] nodesLevel = new int[nodesAmount];
         double initialGraphMSE;
         int edgesAmount;
+
+        //начальные значения для рецепторов
+        for(int i = 0; i < nodesAmount; i++)
+        {
+            nodesLevel[i] = 1;
+            int nodesLevelTemp = (int) ((int) minInputNeuronValue + (float)(Math.random() * ((maxInputNeuronValue - minInputNeuronValue) + 1)) * 100);
+            nodesValue[i] = (float) nodesLevelTemp / 100;
+            nodesValue[i] = doubleToTwoDecimal(nodesValue[i]);
+        }
+
+        for(int i = 1; i <= outputNeuronsAmount; i++)
+        {
+            nodesLevel[nodesLevel.length - i] = 1 + amountOfHiddenLayers + 1;
+        }
+
+        //уровни словёв
+        int countTemp = 0;
+        int amountOfNodesBeforeOutputNeurons = inputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers;
+        for(int i = inputNeuronsAmount; i < amountOfNodesBeforeOutputNeurons; i++)
+        {
+            nodesLevel[i] = currentHiddenLayer;
+            countTemp++;
+            if(countTemp % amountOfNodesInHiddenLayer == 0 && countTemp != 0)
+            {
+                currentHiddenLayer++;
+            }
+        }
+
+        for(int i = 0; i < nodesAmount; i++)
+        {
+            nodes[i] = i;
+        }
+
+        for(int i = 0; i < nodesAmount; i++)
+        {
+            int currentNodeLevel = nodesLevel[i];
+
+            for(int j = 0; j < nodesLevel.length; j++)
+            {
+                if(nodesLevel[j] == currentNodeLevel + 1)
+                {
+                    edges[i][j] = 1;
+                    // от -1 до 1 с двумя знаками после запятой
+                    edgeWeight[i][j] = (int)(((float)(Math.random() * ((1 + 1) + 1)) - 1) * 100);
+                    edgeWeight[i][j] = (float) (edgeWeight[i][j]) / 100;
+                    edgeWeight[i][j] = doubleToTwoDecimal(edgeWeight[i][j]);
+                }
+                else
+                {
+                    edges[i][j] = 0;
+                    edgeWeight[i][j] = 0;
+                }
+            }
+        }
+
+        // для теста
+//        int inputNeuronsAmount = 2;
+//        int outputNeuronsAmount = 1;
+//
+//        int amountOfHiddenLayers = 1;
+//        int amountOfNodesInHiddenLayer = 2;
+//        int[] hiddenLayerNodesAmount = new int[amountOfHiddenLayers];
+//
+//        int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers; //всего вершин в графе
+//
+//        int[][] edges = {
+//            {0,0,1,1,0},
+//            {0,0,1,1,0},
+//            {0,0,0,0,1},
+//            {0,0,0,0,1},
+//            {0,0,0,0,0},
+//        };
+//        int[] nodes = {0,1,2,3,4};
+//        double[] nodesValue = {1,0,0.61,0.69,0.33};
+//        double[][] edgeWeight = {
+//            {0,0,0.45,0.78,0},
+//            {0,0,-0.12,0.13,0},
+//            {0,0,0,0,1.5},
+//            {0,0,0,0,-2.3},
+//            {0,0,0,0,0},
+//        };
+//        int[] nodesLevel = {1,1,2,2,3};
+//        double initialGraphMSE;
+//        int edgesAmount;
 
         edgesAmount = countEdges(edges);
 
@@ -146,9 +149,11 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         JSONArray jsonNodesValue = jsonCode.getJSONArray("nodesValue");
         initialGraphMSE = doubleToTwoDecimal(countMSE(jsonNodesValue));
 
-        JSONObject backpropagationAnswer = backpropagation(nodesValue, edgeWeight);
+        //раскомментить, чтобы увидеь ответ в описании лабы
+//        JSONObject backpropagationAnswer = backpropagation(nodesValue, edgeWeight);
+//        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + " " + backpropagationAnswerToReadble(backpropagationAnswer);
 
-        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + " " + backpropagationAnswerToReadble(backpropagationAnswer);
+        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + ". ";
 
         return new GeneratingResult(text, code, instructions);
     }

@@ -59,8 +59,6 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
         JSONObject backpropagationAnswer = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
         JSONObject convertedClientAnswer = convertClientAnswer(clientAnswer);
-        JSONArray nodesValueJsonArray = new JSONArray(serverAnswerNeuronOutputSignalValue);
-        double newError = doubleToTwoDecimal(countMSE(nodesValueJsonArray));
 
         JSONObject compareResult = compareAnswers(backpropagationAnswer, convertedClientAnswer, Consts.tablePoints);
         double comparePoints = compareResult.getDouble("points");
@@ -68,49 +66,44 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         comment += compareComment;
         points += comparePoints;
 
+        //Новое MSE после выполнения МОР
+        JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdges(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
+        double newError = doubleToTwoDecimal(countMSE(outputNeuronsValueAfterBackPropagation));
+
         if (error != newError)
             comment += "Неверно посчитанно новое MSE. MSE = " + newError;
         else
             points += Consts.errorPoints;
 
+        if (points == 1.0)
+            comment = "Вы восхитительны";
+
         return new CheckingSingleConditionResult(BigDecimal.valueOf(points), comment);
     }
 
-    //todo пофиксить MSE. сейчас он считает MSE для графа до МОРа
-    private static JSONArray getSignalWithNewEdges(JSONArray nodes, JSONArray edges, JSONArray edgeWeight, JSONArray nodesValue)
+    private static JSONArray getSignalWithNewEdges(JSONArray nodes, JSONArray edges, JSONArray edgesWeight, JSONArray nodesValue)
     {
-        JSONArray jsonNeuronInputSignalValue = new JSONArray();
-        JSONArray jsonNeuronOutputSignalValue = new JSONArray();
-
         for(int i = Consts.inputNeuronsAmount; i < nodes.length(); i++)
         {
-            double currentNodeValue = 0;
+            double nodeInputSignal = 0;
+            double nodeOutputSignal = 0;
 
-            for(int j = 0; j < edges.getJSONArray(i).length(); j++)
+            for(int j = 0; j < i; j++)
             {
-                if(edges.getJSONArray(j).getInt(i) == 1)
+                if(edges.getJSONArray(j).getDouble(i) == 1)
                 {
-                    currentNodeValue += nodesValue.getDouble(j) * edgeWeight.getJSONArray(j).getDouble(i);
+                    nodeInputSignal += nodesValue.getDouble(j) * edgesWeight.getJSONArray(j).getDouble(i);
                 }
             }
 
-            jsonNeuronInputSignalValue.put(i, doubleToTwoDecimal(currentNodeValue));
+            nodeInputSignal = doubleToTwoDecimal(nodeInputSignal);
+            nodeOutputSignal = getSigmoidValue(nodeInputSignal);
+            nodeOutputSignal = doubleToTwoDecimal(nodeOutputSignal);
 
-            currentNodeValue = getSigmoidValue(currentNodeValue);
-            currentNodeValue = doubleToTwoDecimal(currentNodeValue);
-            nodesValue.put(i, currentNodeValue);
-
-            jsonNeuronOutputSignalValue.put(i, currentNodeValue);
+            nodesValue.put(i, nodeOutputSignal);
         }
 
-        //избавляемся от ненужных null для входных нейронов, которые уже изначально даны по условию, чтобы у нас был одинаково похожий объект с clientData
-        for(int i = 0; i < Consts.inputNeuronsAmount; i++)
-        {
-            jsonNeuronInputSignalValue.remove(0);
-            jsonNeuronOutputSignalValue.remove(0);
-        }
-
-        return jsonNeuronOutputSignalValue;
+        return nodesValue;
     }
 
     private static JSONObject convertClientAnswer(JSONArray clientAnswer)
@@ -215,47 +208,54 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         double[][] serverDeltaW = (double[][]) serverAnswer.get("deltaW");
         double[][] clientDeltaW = (double[][]) clientAnswer.get("deltaW");
 
-        for (int i = 0; i < nodesAmount; i++)
+        try
         {
-            boolean isDeltaCorrect = false;
-
-            for (int k = inputNeuronsAmount; k < nodesAmount; k++)
+            for (int i = 0; i < nodesAmount; i++)
             {
-                if(serverDelta[k] == clientDelta[i])
-                    isDeltaCorrect = true;
-            }
+                boolean isDeltaCorrect = false;
 
-            if(!isDeltaCorrect)
-            {
-                points -= pointDelta / nodesAmount;
-                comment.append("Неверно рассчитано delta вершины n").append(Integer.toString(i)).append(". ");
-            }
-
-            for (int j = 0; j < nodesAmount; j++)
-            {
-                if(serverNewW[i][j] != clientNewW[i][j])
+                for (int k = inputNeuronsAmount; k < nodesAmount; k++)
                 {
-                    points -= pointDelta / nodesAmount;
-                    comment.append("Неверно рассчитано NewW ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                    if(serverDelta[k] == clientDelta[i])
+                        isDeltaCorrect = true;
                 }
 
-                if(serverGrad[i][j] != clientGrad[i][j])
+                if(!isDeltaCorrect)
                 {
                     points -= pointDelta / nodesAmount;
-                    comment.append("Неверно рассчитано grad ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                    comment.append("Неверно рассчитано delta вершины n").append(Integer.toString(i)).append(". ");
                 }
 
-                //todo с клиента почему-то не приходит значение послденего нового ребра
-                if(serverDeltaW[i][j] != clientDeltaW[i][j])
+                for (int j = 0; j < nodesAmount; j++)
                 {
-                    points -= pointDelta / nodesAmount;
-                    comment.append("Неверно рассчитано deltaW ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                    if(serverNewW[i][j] != clientNewW[i][j])
+                    {
+                        points -= pointDelta / nodesAmount;
+                        comment.append("Неверно рассчитано NewW ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                    }
+
+                    if(serverGrad[i][j] != clientGrad[i][j])
+                    {
+                        points -= pointDelta / nodesAmount;
+                        comment.append("Неверно рассчитано grad ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                    }
+
+                    if(serverDeltaW[i][j] != clientDeltaW[i][j])
+                    {
+                        points -= pointDelta / nodesAmount;
+                        comment.append("Неверно рассчитано deltaW ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                    }
                 }
             }
+
+            result.put("points", points);
+            result.put("comment", comment.toString());
         }
-
-        result.put("points", points);
-        result.put("comment", comment.toString());
+        catch (Exception e)
+        {
+            result.put("points", 0.0);
+            result.put("comment", "Вы не заполнили таблицу. ");
+        }
 
         return result;
     }
