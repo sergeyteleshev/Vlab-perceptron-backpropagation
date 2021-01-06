@@ -1,67 +1,23 @@
-/*html, body, div, span, applet, object, iframe,*/
-/*h1, h2, h3, h4, h5, h6, p, blockquote, pre,*/
-/*a, abbr, acronym, address, big, cite, code,*/
-/*del, dfn, em, img, ins, kbd, q, s, samp,*/
-/*small, strike, strong, sub, sup, tt, var,*/
-/*b, u, i, center,*/
-/*dl, dt, dd, ol, ul, li,*/
-/*fieldset, form, label, legend,*/
-/*table, caption, tbody, tfoot, thead, tr, th, td,*/
-/*article, aside, canvas, details, embed,*/
-/*figure, figcaption, footer, header, hgroup,*/
-/*menu, nav, output, ruby, section, summary,*/
-/*time, mark, audio, video {*/
-    /*margin: 0;*/
-    /*padding: 0;*/
-    /*border: 0;*/
-    /*font-size: 100%;*/
-    /*font: inherit;*/
-    /*vertical-align: baseline;*/
-/*}*/
-/*!* HTML5 display-role reset for older browsers *!*/
-/*article, aside, details, figcaption, figure,*/
-/*footer, header, hgroup, menu, nav, section {*/
-    /*display: block;*/
-/*}*/
-/*body {*/
-    /*line-height: 1;*/
-/*}*/
-/*ol, ul {*/
-    /*list-style: none;*/
-/*}*/
-/*blockquote, q {*/
-    /*quotes: none;*/
-/*}*/
-/*blockquote:before, blockquote:after,*/
-/*q:before, q:after {*/
-    /*content: '';*/
-    /*content: none;*/
-/*}*/
-/*table {*/
-    /*border-collapse: collapse;*/
-    /*border-spacing: 0;*/
-/*}*/
-
-body
+#jsLab body
 {
     font-family: Calibri, serif;
 }
 
-.node rect,
-.node circle,
-.node ellipse,
-.node polygon {
+#jsLab .node rect,
+#jsLab .node circle,
+#jsLab .node ellipse,
+#jsLab .node polygon {
     stroke: #333;
     fill: #eeeeee;
     stroke-width: 1.5px;
 }
 
-.node circle:hover
+#jsLab .node circle:hover
 {
     cursor: pointer;
 }
 
-.stepsTab
+#jsLab .stepsTab
 {
     display: inline-flex;
     align-items: center;
@@ -71,45 +27,39 @@ body
     text-align: center;
 }
 
-.addStep, .minusStep, .addStepBackpropagation, .minusStepBackpropagation
+#jsLab .addStep, #jsLab .minusStep, #jsLab .addStepBackpropagation, #jsLab .minusStepBackpropagation
 {
     text-align: center;
-    width: 35px;
-    height: 35px;
+    height: 45px;
     border-radius: 5px;
 }
 
-.addStepBackpropagation
-{
-
-}
-
-.backpropagation td:first-child
+#jsLab .backpropagation td:first-child
 {
     white-space: nowrap;
 }
 
-.minusStepBackpropagation
+#jsLab .minusStepBackpropagation
 {
     margin-left: 5px;
 }
 
-.steps-buttons-backpropagation
+#jsLab .steps-buttons-backpropagation
 {
     margin-bottom: 20px;
 }
 
-.minusStep
+#jsLab .minusStep
 {
     margin-left: 10px;
 }
 
-.stepTab-element:hover
+#jsLab .stepTab-element:hover
 {
     text-decoration: underline;
 }
 
-.stepTab-element
+#jsLab .stepTab-element
 {
     margin: 5px 5px;
     padding: 10px 10px;
@@ -124,7 +74,7 @@ body
     align-items: center;
 }
 
-.selectTab
+#jsLab .selectTab
 {
     display: flex;
     justify-content: center;
@@ -136,7 +86,7 @@ body
     background-color: #42b4d9;
 }
 
-.lab-header
+#jsLab .lab-header
 {
     display: inline-flex;
     justify-content: space-between;
@@ -144,14 +94,14 @@ body
     align-items: center;
 }
 
-.lab-main
+#jsLab .lab-main
 {
     align-items: flex-start;
     display: inline-flex;
     width: 100%;
 }
 
-.lab
+#jsLab .lab
 {
     display: flex;
     flex-direction: column;
@@ -161,12 +111,12 @@ body
     margin: 20px auto;
 }
 
-.selectedNode circle
+#jsLab .selectedNode circle
 {
     fill: #f54b3e;
 }
 
-.labBottom
+#jsLab .labBottom
 {
     display: inline-flex;
     justify-content: space-between;
@@ -174,7 +124,7 @@ body
     width: 100%;
 }
 
-.lab-info
+#jsLab .lab-info
 {
     background: #42b4d9;
     color: white;
@@ -184,13 +134,13 @@ body
     cursor: pointer;
 }
 
-.steps-table td, .steps-table th
+#jsLab .steps-table td, #jsLab .steps-table th
 {
     padding: 7px;
     text-align: center;
 }
 
-.steps-buttons
+#jsLab .steps-buttons
 {
     display: inline-flex;
     justify-content: flex-start;
@@ -198,29 +148,29 @@ body
     margin: 20px auto;
 }
 
-.steps-table
+#jsLab .steps-table
 {
     width: 100%;
     height: 100%;
 }
 
-.lab-table tr td
+#jsLab .lab-table tr td
 {
     padding: 5px 5px;
 }
 
-.lab-table, .lab-table td, .lab-table th
+#jsLab .lab-table, #jsLab .lab-table td, #jsLab .lab-table th
 {
     border: 2px solid #e1e1e1;
     border-collapse: collapse;
 }
 
-.step-td
+#jsLab .step-td
 {
     vertical-align: top;
 }
 
-.steps
+#jsLab .steps
 {
     margin: 20px auto;
     padding: 0 50px;
@@ -231,27 +181,27 @@ body
     align-items: flex-start;
 }
 
-.step-number-input span
+#jsLab .step-number-input span
 {
     margin-top: 10px;
 }
 
-.step-number-input input[type="button"]
+#jsLab .step-number-input input[type="button"]
 {
     margin-top: 15px;
 }
 
-.maxFlow
+#jsLab .maxFlow
 {
     margin-top: 20px;
 }
 
-.maxFlow-input
+#jsLab .maxFlow-input
 {
     padding: 5px 10px;
 }
 
-.step-number-input
+#jsLab .step-number-input
 {
     display: flex;
     flex-direction: column;
@@ -261,30 +211,31 @@ body
     justify-content: space-between;
 }
 
-.graphComponent
+#jsLab .graphComponent
 {
     width: 100%;
 }
 
-#container {
+#jsLab #container {
+    margin-top: 15px;
     width: 500px;
     height: 400px;
 }
 
-.controlPanel
+#jsLab .controlPanel
 {
     display: inline-flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.textInputGray
+#jsLab .textInputGray
 {
     width: 100%;
     padding: 5px 10px;
 }
 
-.btnGray
+#jsLab .btnGray
 {
     width: 100%;
     cursor: pointer;
@@ -294,12 +245,12 @@ body
     border-radius: 5px;
 }
 
-.btnGray:hover
+#jsLab .btnGray:hover
 {
     background: #e6f6e6;
 }
 
-.graphSvg
+#jsLab .graphSvg
 {
     /*border: 2px solid #e6e6e6;*/
     width: auto;
@@ -309,44 +260,45 @@ body
     align-items: center;
 }
 
-.edgePath path {
+#jsLab .edgePath path {
     stroke: #333;
     fill: #333;
     stroke-width: 1.5px;
 }
 
-.steps-table, .steps-table td, .steps-table th
+#jsLab .steps-table, #jsLab .steps-table td, #jsLab .steps-table th
 {
     border: 1px solid black;
     border-collapse: collapse;
 }
 
-.hideDiv
+#jsLab .hideDiv
 {
     display: none;
 }
 
 /* Chrome, Safari, Edge, Opera */
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
+#jsLab input::-webkit-outer-spin-button,
+#jsLab input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
 
 /* Firefox */
-input[type=number] {
+#jsLab input[type=number] {
     -moz-appearance: textfield;
 }
 
-.tableInputData
+#jsLab .tableInputData
 {
     width: 100%;
     height: 100%;
     border: none;
 }
 
-.redrawGraph
+#jsLab .redrawGraph
 {
+    margin-top: 10px;
     margin-left: 10px;
     padding-top: 5px;
     padding-bottom: 5px

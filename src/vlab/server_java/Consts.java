@@ -12,6 +12,11 @@ public class Consts
     public static final int outputNeuronsAmount = 1;
     public static final int amountOfHiddenLayers = 1;
     public static final int amountOfNodesInHiddenLayer = 2;
+    public static final double mseEpsilon = 0.1;
+    public static final double deltaEpsilon = 0.1;
+    public static final double gradEpsilon = 0.1;
+    public static final double dtWEpsilon = 0.1;
+    public static final double WEpsilon = 0.1;
     public static final double errorPoints = 0.1;
     public static final double tablePoints = 0.9;
 

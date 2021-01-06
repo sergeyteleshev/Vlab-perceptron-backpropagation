@@ -24,6 +24,11 @@ const test_graph = {
     initialNodesValue: [],
 };
 
+function roundToTwoDecimals(num)
+{
+    return Math.round(num * 100) / 100;
+}
+
 function getNodesSignal(nodes, edges, edgesWeight, nodesValue, inputNeuronsAmount)
 {
     for(let i = inputNeuronsAmount; i < nodes.length; i++)
@@ -131,7 +136,8 @@ function dataToSigma(state) {
             color: nodeColor,
         };
 
-        for (let j = 0; j < edges.length; j++) {
+        for (let j = 0; j < edges.length; j++)
+        {
             let edgeColor = "#000";
 
             if(currentEdgeSource !== null && currentEdgeSource !== null && edges[currentEdgeSource][currentEdgeTarget] === 1
@@ -191,7 +197,7 @@ function getHTML(templateData) {
         {
             backPropagationData += `<tr>
             <td>
-                "w${String(templateData.edgesTableData[i].edge[0]) + String(templateData.edgesTableData[i].edge[1])}"
+                w${String(templateData.edgesTableData[i].edge[0]) + String(templateData.edgesTableData[i].edge[1])}
             </td>
             <td>
                 ${templateData.edgesTableData[i].delta}
@@ -304,25 +310,23 @@ function getHTML(templateData) {
                 <tr>
                     <td>
                         <div class="graphComponent">                          
+                                <button type="button" class="btn btn-info redrawGraph">Перерисовать граф</button>
                             <div id="container"></div>
                         </div>
                     </td>
                     <td class="step-td">                      
                         <div class="steps">
                             <div class="steps-buttons-backpropagation">
-                                <input id="addStepBackpropagation" class="addStepBackpropagation btn btn-success" type="button" value="+"/>
-                                <input type="button" class="minusStepBackpropagation btn btn-danger" value="-">
-                                <button type="button" class="btn btn-info redrawGraph">
-                                  Перерисовать граф
-                                </button>
+                                <input id="addStepBackpropagation" class="addStepBackpropagation btn btn-success" type="button" value="Следующий шаг"/>
+                                <input type="button" class="minusStepBackpropagation btn btn-danger" value="Предыдущий шаг">                                
                             </div>
                             <table class="backpropagation steps-table">     
                                 <tr>
                                     <th>Ребро</th>
                                     <th>DELTA</th>
                                     <th>GRAD</th>
-                                    <th>DELTA W</th>
-                                    <th>NEW W</th>
+                                    <th>dtW</th>
+                                    <th>W</th>
                                 </tr>                
                                 ${backPropagationData}
                             </table>                                       
@@ -527,10 +531,10 @@ function bindActionListeners(appInstance)
                 currentEdgeStep++;
                 edgesTableData.push({
                     edge: state.currentEdge.slice(),
-                    delta: Number(document.getElementById("delta").value),
-                    grad: Number(document.getElementById("grad").value),
-                    deltaW: Number(document.getElementById("deltaW").value),
-                    newW: Number(document.getElementById("newW").value),
+                    delta: roundToTwoDecimals(Number(document.getElementById("delta").value)),
+                    grad: roundToTwoDecimals(Number(document.getElementById("grad").value)),
+                    deltaW: roundToTwoDecimals(Number(document.getElementById("deltaW").value)),
+                    newW: roundToTwoDecimals(Number(document.getElementById("newW").value)),
                 });
             }
             else
@@ -638,8 +642,7 @@ function renderDag(state, appInstance) {
         const state = appInstance.state.updateState((state) => {
             if(state.isBackpropagationDone === false)
             {
-                if(state.currentEdge.length === 2 && state.currentEdge[0] === res.data.edge.source
-                    && state.currentEdge[1] === res.data.edge.target)
+                if(state.currentEdge.length)
                 {
                     return {
                         ...state,

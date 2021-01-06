@@ -70,13 +70,12 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdges(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
         double newError = doubleToTwoDecimal(countMSE(outputNeuronsValueAfterBackPropagation));
 
-        if (error != newError)
-            comment += "Неверно посчитанно новое MSE. MSE = " + newError;
-        else
+        if (newError >= error - mseEpsilon && newError <= error + mseEpsilon)
             points += Consts.errorPoints;
+        else
+            comment += "Неверно посчитанно новое MSE. MSE = " + newError;
 
-        if (points == 1.0)
-            comment = "Вы восхитительны";
+        points = doubleToTwoDecimal(points);
 
         return new CheckingSingleConditionResult(BigDecimal.valueOf(points), comment);
     }
@@ -216,8 +215,11 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
                 for (int k = inputNeuronsAmount; k < nodesAmount; k++)
                 {
-                    if(serverDelta[k] == clientDelta[i])
+                    if(clientDelta[i] >= serverDelta[k] - deltaEpsilon && clientDelta[i] <= serverDelta[k] + deltaEpsilon)
+                    {
                         isDeltaCorrect = true;
+                        break;
+                    }
                 }
 
                 if(!isDeltaCorrect)
@@ -228,19 +230,19 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
                 for (int j = 0; j < nodesAmount; j++)
                 {
-                    if(serverNewW[i][j] != clientNewW[i][j])
+                    if(!(clientNewW[i][j] >= serverNewW[i][j] - WEpsilon && clientNewW[i][j] <= serverNewW[i][j] + WEpsilon))
                     {
                         points -= pointDelta / nodesAmount;
                         comment.append("Неверно рассчитано NewW ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
                     }
 
-                    if(serverGrad[i][j] != clientGrad[i][j])
+                    if(!(clientGrad[i][j] >= serverGrad[i][j] - gradEpsilon && clientGrad[i][j] <= serverGrad[i][j] + gradEpsilon))
                     {
                         points -= pointDelta / nodesAmount;
                         comment.append("Неверно рассчитано grad ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
                     }
 
-                    if(serverDeltaW[i][j] != clientDeltaW[i][j])
+                    if(!(clientDeltaW[i][j] >= serverDeltaW[i][j] - dtWEpsilon && clientDeltaW[i][j] <= serverDeltaW[i][j] + dtWEpsilon))
                     {
                         points -= pointDelta / nodesAmount;
                         comment.append("Неверно рассчитано deltaW ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
