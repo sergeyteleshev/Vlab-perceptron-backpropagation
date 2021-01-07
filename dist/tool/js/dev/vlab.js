@@ -189,7 +189,7 @@ function getHTML(templateData) {
     }
 
     if (templateData.currentEdge[0] && templateData.currentEdge[1])
-        currentEdgeString = "w" + String(templateData.currentEdge[0]) + String(templateData.currentEdge[1]);
+        currentEdgeString = "w" + templateData.currentEdge[0].toString() + templateData.currentEdge[1].toString();
 
     if(templateData.edgesTableData)
     {
@@ -197,7 +197,7 @@ function getHTML(templateData) {
         {
             backPropagationData += `<tr>
             <td>
-                w${String(templateData.edgesTableData[i].edge[0]) + String(templateData.edgesTableData[i].edge[1])}
+                w${templateData.edgesTableData[i].edge[0].toString() + templateData.edgesTableData[i].edge[1].toString()}
             </td>
             <td>
                 ${templateData.edgesTableData[i].delta}
@@ -215,7 +215,9 @@ function getHTML(templateData) {
         }
     }
 
-    backPropagationData += `<tr>
+    if(templateData.edgesTableData.length !== templateData.edgesAmount)
+    {
+        backPropagationData += `<tr>
             <td>
                 ${currentEdgeString}
             </td>
@@ -233,6 +235,7 @@ function getHTML(templateData) {
             </td>
         </tr>
     `;
+    }
 
     if(templateData.neuronsTableData)
     {

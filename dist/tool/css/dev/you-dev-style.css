@@ -136,6 +136,7 @@
 
 #jsLab .steps-table td, #jsLab .steps-table th
 {
+    width: 120px;
     padding: 7px;
     text-align: center;
 }
