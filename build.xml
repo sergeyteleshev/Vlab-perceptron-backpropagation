@@ -178,6 +178,21 @@
 
     </target>
 
+    <target name="make.server.zip" depends="clean.vltest, make.server">
+        <mkdir dir="${dir.reference.temp}"/>
+
+        <copy todir="${dir.reference.temp}/server">
+            <fileset file="${dir.reference.dist.server}/${dist.server.name}"/>
+            <fileset dir="${dir.reference.dist.server}" includes="${dir.reference.lib}/**"/>
+            <fileset dir="${dir.reference.dist.server}" includes="${dir.reference.rsc}/**"/>
+        </copy>
+
+        <echo file="${dir.reference.temp}/lab.desc" append="true">name=${ant.project.name}</echo>
+
+        <zip compress="false" destfile="${dir.reference.serverdist}/${dist.serverzip.name}"
+             basedir="${dir.reference.temp}"/>
+        <delete quiet="true" dir="${dir.reference.temp}"/>
+    </target>
 
     <target name="make.vltest.zip" depends="clean.vltest, make.server, make.tool">
         <mkdir dir="${dir.reference.temp}"/>
@@ -268,10 +283,9 @@
             &lt;/head&gt;
             &lt;body&gt;
             &lt;div id="jsLab"&gt;&lt;/div&gt;
-            <!--&lt;div id="root"&gt;&lt;/div&gt;-->
-            <!--&lt;input type="text" value="genfake" id="preGeneratedCode"/&gt;-->
-            <!--&lt;input type="text" value="calcfake" id="calculatedCode"/&gt;-->
-            <!--&lt;input type="text" value="prevsolfake" id="previousSolution"/&gt;-->
+            &lt;input type="text" value="genfake" id="preGeneratedCode"/&gt;
+            &lt;input type="text" value="calcfake" id="calculatedCode"/&gt;
+            &lt;input type="text" value="prevsolfake" id="previousSolution"/&gt;
         </echo>
 
         <foreach target="injection.JS" param="file.name">

@@ -24,18 +24,18 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 
         JSONObject graph = new JSONObject();
 
-//        int minInputNeuronValue = Consts.minInputNeuronValue;
-//        int maxInputNeuronValue = Consts.maxInputNeuronValue;
-//        int inputNeuronsAmount = Consts.inputNeuronsAmount;
-//        int outputNeuronsAmount = Consts.outputNeuronsAmount;
-//
-//        int amountOfHiddenLayers = Consts.amountOfHiddenLayers;
-//        int amountOfNodesInHiddenLayer = Consts.amountOfNodesInHiddenLayer;
+        int minInputNeuronValue = Consts.minInputNeuronValue;
+        int maxInputNeuronValue = Consts.maxInputNeuronValue;
+        int inputNeuronsAmount = Consts.inputNeuronsAmount;
+        int outputNeuronsAmount = Consts.outputNeuronsAmount;
+
+        int amountOfHiddenLayers = Consts.amountOfHiddenLayers;
+        int amountOfNodesInHiddenLayer = Consts.amountOfNodesInHiddenLayer;
 //        int[] hiddenLayerNodesAmount = new int[amountOfHiddenLayers];
 //        int currentHiddenLayer = 2;
 //
 //        int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers; //всего вершин в графе
-//
+
 //        int[][] edges = new int[nodesAmount][nodesAmount];
 //        int[] nodes = new int[nodesAmount];
 //        double[] nodesValue = new double[nodesAmount];
@@ -43,8 +43,8 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 //        int[] nodesLevel = new int[nodesAmount];
 //        double initialGraphMSE;
 //        int edgesAmount;
-//
-//        //начальные значения для рецепторов
+
+        //начальные значения для рецепторов
 //        for(int i = 0; i < nodesAmount; i++)
 //        {
 //            nodesLevel[i] = 1;
@@ -99,11 +99,11 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 //        }
 
         // для теста
-        int inputNeuronsAmount = 2;
-        int outputNeuronsAmount = 1;
-
-        int amountOfHiddenLayers = 1;
-        int amountOfNodesInHiddenLayer = 2;
+//        int inputNeuronsAmount = 2;
+//        int outputNeuronsAmount = 1;
+//
+//        int amountOfHiddenLayers = 1;
+//        int amountOfNodesInHiddenLayer = 2;
         int[] hiddenLayerNodesAmount = new int[amountOfHiddenLayers];
 
         int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers; //всего вершин в графе
@@ -151,9 +151,9 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 
         //раскомментить, чтобы увидеь ответ в описании лабы
         JSONObject backpropagationAnswer = backpropagation(nodesValue, edgeWeight);
-        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + " " + backpropagationAnswerToReadble(backpropagationAnswer);
+//        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + " " + backpropagationAnswerToReadble(backpropagationAnswer);
 
-//        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + ". ";
+        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новое значение MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + ", E = 0.7, alpha = 0.3, dtW(i-1) = 0.";
 
         return new GeneratingResult(text, code, instructions);
     }

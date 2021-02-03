@@ -117,13 +117,13 @@ function dataToSigma(state) {
 
         if(currentSelectedNodeId === nodeId)
         {
-            nodeColor = "#00F";
+            nodeColor = "#DE4E5A";
         }
 
         currentNodeSection.map(currentNodeSectionId => {
             if(currentNodeSectionId === nodeId)
             {
-                nodeColor = "#FF0";
+                nodeColor = "#DEBF59";
             }
         });
 
@@ -143,7 +143,7 @@ function dataToSigma(state) {
             if(currentEdgeSource !== null && currentEdgeSource !== null && edges[currentEdgeSource][currentEdgeTarget] === 1
                 && i === currentEdgeSource && j === currentEdgeTarget)
             {
-                edgeColor = "#F00";
+                edgeColor = "#DE4E5A";
                 currentEdgeSource = null;
                 currentEdgeTarget = null;
             }
@@ -151,7 +151,7 @@ function dataToSigma(state) {
             for(let k = 0; k < state.selectedEdges.length; k++)
             {
                 if(state.selectedEdges[k] === "w" + i + j)
-                    edgeColor = "#0F0";
+                    edgeColor = "#28a745";
             }
 
             if(edges[i][j] === 1)
@@ -260,87 +260,59 @@ function getHTML(templateData) {
 
     return `
         <div class="lab">
-            <table class="lab-table">
-                <tr>
-                    <td colspan="2">
-                        <div class="lab-header">
-                            <div></div>
-                            <span>Метод обратного распространения сигнала в перцептроне</span>
-                            <!-- Button trigger modal -->
-                            <button type="button" class="btn btn-info" data-toggle="modal" data-target="#exampleModalScrollable">
-                              Справка
+            <div class="lab-table">                                
+                <div class="lab-header_text">Метод обратного распространения сигнала в перцептроне</div>
+                <div class="header-buttons">
+                    <button type="button" class="btn btn-info redrawGraph">Перерисовать граф</button>
+                    <button type="button" class="btn btn-info showReference" data-toggle="modal" data-target="#exampleModalScrollable">Справка</button>
+                </div>            
+                <div class="graphComponent">                                                  
+                    <div id="graphContainer"></div>
+                </div>                               
+                <div class="steps">
+                    <div class="steps-buttons-backpropagation">
+                        <input id="addStepBackpropagation" class="addStepBackpropagation btn btn-success" type="button" value="Следующий шаг"/>
+                        <input type="button" class="minusStepBackpropagation btn btn-danger" value="Предыдущий шаг">                                
+                    </div>
+                    <table class="backpropagation steps-table">     
+                        <tr>
+                            <th>Ребро</th>
+                            <th>DELTA</th>
+                            <th>GRAD</th>
+                            <th>dtW</th>
+                            <th>W</th>
+                        </tr>                
+                        ${backPropagationData}
+                    </table>                                       
+                    <div class="maxFlow">
+                        <span>MSE:</span>
+                        <input type='number' ${countInvalidNodesValue !== 0 || templateData.isBackpropagationDone === false ? "disabled" : ""} class='maxFlow-input' id="error" value="${templateData.error}"'/>                       
+                    </div>                                                                                                                                            
+                </div> 
+                <div class="lab-header">                                        
+                    <!-- Button trigger modal -->                                        
+                    <!-- Modal -->
+                    <div class="modal fade" id="exampleModalScrollable" tabindex="-1" role="dialog" aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-scrollable" role="document">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="exampleModalScrollableTitle">Справка по интерфейсу лабораторной работы</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                              <span aria-hidden="true">&times;</span>
                             </button>
-                            
-                            <!-- Modal -->
-                            <div class="modal fade" id="exampleModalScrollable" tabindex="-1" role="dialog" aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">
-                              <div class="modal-dialog modal-dialog-scrollable" role="document">
-                                <div class="modal-content">
-                                  <div class="modal-header">
-                                    <h5 class="modal-title" id="exampleModalScrollableTitle">Справка по интерфейсу лабораторной работы</h5>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                      <span aria-hidden="true">&times;</span>
-                                    </button>
-                                  </div>
-                                  <div class="modal-body">
-                                        <p><b>Алгоритм работы с интерфейсом:</b></p>
-                                        <p>
-                                            1) Для того, чтобы начать строить путь из истока к стоку, нужно кликнуть на исток. Путь может начинаться только из него.                                            
-                                            Далее нужно включить в текущий путь только те вершины, в которые есть ребро с <u>не</u> нулевым весом. Если вес <u>равен</u> нулю(в любую из сторон), то 
-                                            лабораторная работа не позволит вам выделить эту вершину.
-                                        </p>
-                                        <p>
-                                            2) После того как путь построен нужно в текстовом поле "минимальный поток текущей итерации" ввести то, что требуется и нажать на "+". Тем самым вы перейдёте на следующую итерацию алгоритма.
-                                        </p>
-                                        <p>
-                                            3) Повторять шаги 2 и 3 до тех пор пока существует путь из истока к стоку.
-                                        </p>
-                                        <p>
-                                            4) После того как путей больше нет, необходимо нажать на кнопку "завершить". Тем самым разблокируется текстовое поле "Максимальный поток графа", и можно будет ввести полученный ответ.                                        
-                                        </p>
-                                        <p>
-                                            5) Чтобы завершить лабораторную работу, нужно нажать кнопку "отправить".
-                                        </p>
-                                        <p><b>Примечание:</b></p>
-                                        <p>1) После ввода значений в текстовые поля кнопки не кликаются с первого раза, так как фокус остаётся на текстовом поле. Первым кликом(в любое место окна ЛР) нужно убрать фокус, а затем нажать на нужную кнопку</p>
-                                        <p>2) После нажатия кнопки "завершить" весь остальной интерфейс остаётся кликабельным, так что стоит быть аккуратнее, чтобы не "сбить" результат работы.</p>
-                                  </div>                                 
-                                </div>
-                              </div>
-                            </div>                           
+                          </div>
+                          <div class="modal-body">
+                                <p>1) Если граф отобразился так, что не видно значение рёбер или вершин графа, то нужно нажать <b>кнопку "перерисовать граф"</b>.</p>
+                                <p>2) При клике на ребро, оно становится красным и в таблице появляется <b>значение ребра для текущей итерации</b>.</p>                                        
+                                <p>3) После того как все данные таблицы для текущей итерации заполнены, нужно нажать <b>кнопку "следующий шаг"</b>. Введённые числовые <b>значения автоматически округлятся до 2х знаков</b>.</p>
+                                <p>4) Если вы совершили ошибку, то вы можете отменить текущую итерацию нажав кнопку <b>"Предыдущий шаг"</b>.</p>
+                                <p>5) <b>Поле MSE</b> откроется сразу после того как будут рассчитаны все новые значения весов рёбер.</p>                                                                              
+                          </div>                                 
                         </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <div class="graphComponent">                          
-                                <button type="button" class="btn btn-info redrawGraph">Перерисовать граф</button>
-                            <div id="container"></div>
-                        </div>
-                    </td>
-                    <td class="step-td">                      
-                        <div class="steps">
-                            <div class="steps-buttons-backpropagation">
-                                <input id="addStepBackpropagation" class="addStepBackpropagation btn btn-success" type="button" value="Следующий шаг"/>
-                                <input type="button" class="minusStepBackpropagation btn btn-danger" value="Предыдущий шаг">                                
-                            </div>
-                            <table class="backpropagation steps-table">     
-                                <tr>
-                                    <th>Ребро</th>
-                                    <th>DELTA</th>
-                                    <th>GRAD</th>
-                                    <th>dtW</th>
-                                    <th>W</th>
-                                </tr>                
-                                ${backPropagationData}
-                            </table>                                       
-                            <div class="maxFlow">
-                                <span>MSE:</span>
-                                <input type='number' ${countInvalidNodesValue !== 0 || templateData.isBackpropagationDone === false ? "disabled" : ""} class='maxFlow-input' id="error" value="${templateData.error}"'/>                       
-                            </div>                                                                                                                                            
-                        </div>
-                    </td>
-                </tr>
-            </table>                                                                         
+                      </div>
+                    </div>                           
+                </div>                       
+            </div>                                                                                     
         </div>`;
 }
 
@@ -615,14 +587,14 @@ function bindActionListeners(appInstance)
 
 function renderDag(state, appInstance) {
     //удаляем содержимое графа для экономия памяти браузера
-    let graphContainer = document.getElementById('container');
-    while (graphContainer.firstChild) {
-        graphContainer.removeChild(graphContainer.firstChild);
-    }
+    // let graphContainer = document.getElementById('graphContainer');
+    // while (graphContainer.firstChild) {
+    //     graphContainer.removeChild(graphContainer.firstChild);
+    // }
 
     let s = new sigma({
         renderers: [{
-            container: document.getElementById('container'),
+            container: document.getElementById('graphContainer'),
             type: "canvas",
         }],
         settings: {
