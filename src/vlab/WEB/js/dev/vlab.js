@@ -773,7 +773,10 @@ function init_lab() {
         getCondition: function () {
         },
         getResults: function () {
-            return JSON.stringify(appInstance.state.getState());
+            let result = {...appInstance.state.getState()};
+            delete result.edgeWeight;
+            console.log('getResults', result);
+            return JSON.stringify(result);
         },
         calculateHandler: function (text, code) {
         },
