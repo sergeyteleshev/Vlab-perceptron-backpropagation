@@ -85,85 +85,88 @@ function dataToSigma(state) {
     let amountOfNodesInHiddenLayer = state.amountOfNodesInHiddenLayer;
     let maxNeuronsInLayer = Math.max(inputNeuronsAmount, outputNeuronsAmount, amountOfNodesInHiddenLayer);
 
-    for (let i = 0; i < nodesLevel.length; i++) {
-        nodesLevelAmount[nodesLevel[i]] = 1 + (nodesLevelAmount[nodesLevel[i]] || 0);
-    }
+    if(nodesLevel)
+    {
+        for (let i = 0; i < nodesLevel.length; i++) {
+            nodesLevelAmount[nodesLevel[i]] = 1 + (nodesLevelAmount[nodesLevel[i]] || 0);
+        }
 
-    nodesLevelAmount.map(el => {
-        if (maxLevel < el)
-            maxLevel = el;
-    });
+        nodesLevelAmount.map(el => {
+            if (maxLevel < el)
+                maxLevel = el;
+        });
 
-    for (let i = 0; i < edges.length; i++) {
-        let nodeValue = nodesValue[i] !== null ? `(I${i} = ${nodesValue[i]})` : "";
-        let nodeColor = "#000";
-        let nodeId = "n" + i;
-        let yLevel = 0;
+        for (let i = 0; i < edges.length; i++) {
+            let nodeValue = nodesValue[i] !== null ? `(I${i} = ${nodesValue[i]})` : "";
+            let nodeColor = "#000";
+            let nodeId = "n" + i;
+            let yLevel = 0;
 
-        yLevel = maxNeuronsInLayer / (nodesLevel[i]) + i + 1 - nodesLevel[i];
-        yLevel += yLevelRandomDisplacement[i];
+            yLevel = maxNeuronsInLayer / (nodesLevel[i]) + i + 1 - nodesLevel[i];
+            yLevel += yLevelRandomDisplacement[i];
 
-        for(let j = 0; j > neuronsTableData.length; j++) {
-            if (neuronsTableData[j].nodeId === nodeId)
+            for(let j = 0; j > neuronsTableData.length; j++) {
+                if (neuronsTableData[j].nodeId === nodeId)
+                {
+                    nodeColor = "#28a745";
+                }
+            }
+
+            if(typeof nodesValue[i] === "number")
             {
                 nodeColor = "#28a745";
             }
-        }
 
-        if(typeof nodesValue[i] === "number")
-        {
-            nodeColor = "#28a745";
-        }
-
-        if(currentSelectedNodeId === nodeId)
-        {
-            nodeColor = "#DE4E5A";
-        }
-
-        currentNodeSection.map(currentNodeSectionId => {
-            if(currentNodeSectionId === nodeId)
+            if(currentSelectedNodeId === nodeId)
             {
-                nodeColor = "#DEBF59";
-            }
-        });
-
-        resultNodes[i] = {
-            id: nodeId,
-            label:  `${i.toString()} ${nodeValue}`,
-            x: nodesLevel[i],
-            y: yLevel,
-            size: 4,
-            color: nodeColor,
-        };
-
-        for (let j = 0; j < edges.length; j++)
-        {
-            let edgeColor = "#000";
-
-            if(currentEdgeSource !== null && currentEdgeSource !== null && edges[currentEdgeSource][currentEdgeTarget] === 1
-                && i === currentEdgeSource && j === currentEdgeTarget)
-            {
-                edgeColor = "#DE4E5A";
-                currentEdgeSource = null;
-                currentEdgeTarget = null;
+                nodeColor = "#DE4E5A";
             }
 
-            for(let k = 0; k < state.selectedEdges.length; k++)
-            {
-                if(state.selectedEdges[k] === "w" + i + j)
-                    edgeColor = "#28a745";
-            }
+            currentNodeSection.map(currentNodeSectionId => {
+                if(currentNodeSectionId === nodeId)
+                {
+                    nodeColor = "#DEBF59";
+                }
+            });
 
-            if(edges[i][j] === 1)
+            resultNodes[i] = {
+                id: nodeId,
+                label:  `${i.toString()} ${nodeValue}`,
+                x: nodesLevel[i],
+                y: yLevel,
+                size: 4,
+                color: nodeColor,
+            };
+
+            for (let j = 0; j < edges.length; j++)
             {
-                resultEdges.push({
-                    id: "w" + i + j,
-                    source: "n" + i,
-                    target: "n" + j,
-                    label: edgeWeight[i][j].toString(),
-                    color: edgeColor,
-                    size: 200,
-                });
+                let edgeColor = "#000";
+
+                if(currentEdgeSource !== null && currentEdgeSource !== null && edges[currentEdgeSource][currentEdgeTarget] === 1
+                    && i === currentEdgeSource && j === currentEdgeTarget)
+                {
+                    edgeColor = "#DE4E5A";
+                    currentEdgeSource = null;
+                    currentEdgeTarget = null;
+                }
+
+                for(let k = 0; k < state.selectedEdges.length; k++)
+                {
+                    if(state.selectedEdges[k] === "w" + i + j)
+                        edgeColor = "#28a745";
+                }
+
+                if(edges[i][j] === 1)
+                {
+                    resultEdges.push({
+                        id: "w" + i + j,
+                        source: "n" + i,
+                        target: "n" + j,
+                        label: edgeWeight[i][j].toString(),
+                        color: edgeColor,
+                        size: 200,
+                    });
+                }
             }
         }
     }
@@ -261,7 +264,7 @@ function getHTML(templateData) {
     return `
         <div class="lab">
             <div class="lab-table">                                
-                <div class="lab-header_text">Метод обратного распространения сигнала в перцептроне</div>
+                <div class="lab-header_text">Алгоритм обратного распространения ошибки в перцептроне</div>
                 <div class="header-buttons">
                     <button type="button" class="btn btn-info redrawGraph">Перерисовать граф</button>
                     <button type="button" class="btn btn-info showReference" data-toggle="modal" data-target="#exampleModalScrollable">Справка</button>
@@ -587,10 +590,10 @@ function bindActionListeners(appInstance)
 
 function renderDag(state, appInstance) {
     //удаляем содержимое графа для экономия памяти браузера
-    // let graphContainer = document.getElementById('graphContainer');
-    // while (graphContainer.firstChild) {
-    //     graphContainer.removeChild(graphContainer.firstChild);
-    // }
+    let graphContainer = document.getElementById('graphContainer');
+    while (graphContainer.firstChild) {
+        graphContainer.removeChild(graphContainer.firstChild);
+    }
 
     let s = new sigma({
         renderers: [{
@@ -604,6 +607,7 @@ function renderDag(state, appInstance) {
     });
 
     let graphData = dataToSigma(state);
+    console.log('graphData', graphData);
 
     graphData.nodes.map(node => {
         s.graph.addNode(node);

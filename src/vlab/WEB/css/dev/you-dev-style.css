@@ -160,6 +160,11 @@
     height: 100%;
 }
 
+#jsLab .lab-table
+{
+    width: 100%;
+}
+
 #jsLab .lab-table tr td
 {
     padding: 5px 5px;
