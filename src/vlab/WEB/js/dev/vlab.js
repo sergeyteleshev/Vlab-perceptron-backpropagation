@@ -192,7 +192,7 @@ function getHTML(templateData) {
     }
 
     if (templateData.currentEdge[0] && templateData.currentEdge[1])
-        currentEdgeString = "w" + templateData.currentEdge[0].toString() + templateData.currentEdge[1].toString();
+        currentEdgeString = "(" + templateData.currentEdge[0].toString() + ", " + templateData.currentEdge[1].toString() + ")";
 
     if(templateData.edgesTableData)
     {
@@ -200,14 +200,17 @@ function getHTML(templateData) {
         {
             backPropagationData += `<tr>
             <td>
-                w${templateData.edgesTableData[i].edge[0].toString() + templateData.edgesTableData[i].edge[1].toString()}
+                (${templateData.edgesTableData[i].edge[0].toString() + ", " + templateData.edgesTableData[i].edge[1].toString()})
+            </td>
+            <td>
+                ${templateData.edgesTableData[i].wijZero}            
+            </td>
+            <td>
+                ${templateData.edgesTableData[i].deltaWijZero}            
             </td>
             <td>
                 ${templateData.edgesTableData[i].delta}
-            </td>
-            <td>
-                ${templateData.edgesTableData[i].grad}            
-            </td>
+            </td>            
             <td>
                 ${templateData.edgesTableData[i].deltaW}            
             </td>
@@ -223,13 +226,16 @@ function getHTML(templateData) {
         backPropagationData += `<tr>
             <td>
                 ${currentEdgeString}
+            </td>                    
+            <td>
+                <input value="${templateData.currentWijZero}" id="wijZero" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
+            </td>
+            <td>
+                <input value="${templateData.currentDeltaWijZero}" id="deltaWijZero" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
             </td>
             <td>
                 <input value="${templateData.currentDelta}" id="delta" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
-            </td>
-            <td>
-                <input value="${templateData.currentGrad}" id="grad" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
-            </td>
+            </td>           
             <td>
                 <input value="${templateData.currentDeltaW}" id="deltaW" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
             </td>
@@ -279,11 +285,15 @@ function getHTML(templateData) {
                     </div>
                     <table class="backpropagation steps-table">     
                         <tr>
-                            <th>Ребро</th>
-                            <th>DELTA</th>
-                            <th>GRAD</th>
-                            <th>dtW</th>
-                            <th>W</th>
+                            <th>
+                                <p>Дуга</p>
+                                <p>(X<sub>i</sub>, X<sub>j</sub>)</p>
+                            </th>
+                            <th>W<sub>ij</sub><sup>0</sup></th>
+                            <th>&Delta;W<sub>ij</sub><sup>0</sup></th>
+                            <th>&delta;(X<sub>j</sub>)</th>                           
+                            <th>&Delta;W<sub>ij</sub><sup>1</sup></th>
+                            <th>W<sub>ij</sub><sup>1</sup></th>
                         </tr>                
                         ${backPropagationData}
                     </table>                                       
@@ -344,8 +354,9 @@ function initState() {
         isBackpropagationDone: false,
         currentEdge: [],
         selectedEdges: [],
+        currentWijZero: null,
+        currentDeltaWijZero: null,
         currentDelta: null,
-        currentGrad: null,
         currentDeltaW: null,
         currentNewW: null,
         newNodesValue: [],
@@ -366,23 +377,26 @@ function initState() {
 function convertEdgesTableDataToMatrix(clientAnswer)
 {
     console.log(clientAnswer);
-    let newW = [];
+    let wijZero = [];
+    let deltaWijZero = [];
     let delta = [];
     let deltaW = [];
-    let grad = [];
+    let newW = [];
 
     for (let i = 0; i < clientAnswer.length; i++)
     {
         delta.push(0);
         newW.push([]);
         deltaW.push([]);
-        grad.push([]);
+        wijZero.push([]);
+        deltaWijZero.push([]);
 
         for (let j = 0; j < clientAnswer.length; j++)
         {
             newW[i].push(0);
             deltaW[i].push(0);
-            grad[i].push(0);
+            wijZero[i].push(0);
+            deltaWijZero[i].push(0);
         }
     }
 
@@ -394,14 +408,16 @@ function convertEdgesTableDataToMatrix(clientAnswer)
         newW[nodeFromIndex][nodeToIndex] = clientAnswer[i].newW;
         delta[i] = clientAnswer[i].delta;
         deltaW[nodeFromIndex][nodeToIndex] = clientAnswer[i].deltaW;
-        grad[nodeFromIndex][nodeToIndex] = clientAnswer[i].grad;
+        deltaWijZero[nodeFromIndex][nodeToIndex] = clientAnswer[i].deltaWijZero;
+        wijZero[nodeFromIndex][nodeToIndex] = clientAnswer[i].wijZero;
     }
 
     return {
         newW,
         delta,
         deltaW,
-        grad
+        deltaWijZero,
+        wijZero,
     };
 }
 
@@ -475,7 +491,8 @@ function bindActionListeners(appInstance)
             let nodesValue = state.nodesValue.slice();
 
             let prevDelta = state.currentDelta;
-            let prevGrad = state.currentGrad ;
+            let prevWijZero = state.currentWijZero;
+            let prevDeltaWijZero = state.currentDeltaWijZero;
             let prevDeltaW = state.currentDeltaW ;
             let prevNewW = state.currentNewW;
             let prevEdge = state.currentEdge.slice();
@@ -504,15 +521,16 @@ function bindActionListeners(appInstance)
             }
 
             if(state.currentEdge.length > 0 && !isNaN(state.currentDelta)
-                && !isNaN(state.currentGrad) && !isNaN(state.currentDeltaW) && !isNaN(state.currentNewW))
+                && !isNaN(state.currentWijZero) && !isNaN(state.currentDeltaWijZero) && !isNaN(state.currentDeltaW) && !isNaN(state.currentNewW))
             {
                 currentEdgeStep++;
                 edgesTableData.push({
                     edge: state.currentEdge.slice(),
-                    delta: roundToTwoDecimals(Number(document.getElementById("delta").value)),
-                    grad: roundToTwoDecimals(Number(document.getElementById("grad").value)),
-                    deltaW: roundToTwoDecimals(Number(document.getElementById("deltaW").value)),
-                    newW: roundToTwoDecimals(Number(document.getElementById("newW").value)),
+                    delta: Number(document.getElementById("delta").value),
+                    wijZero: Number(document.getElementById("wijZero").value),
+                    deltaWijZero: Number(document.getElementById("deltaWijZero").value),
+                    deltaW: Number(document.getElementById("deltaW").value),
+                    newW: Number(document.getElementById("newW").value),
                 });
             }
             else
@@ -531,12 +549,14 @@ function bindActionListeners(appInstance)
                 currentEdgeStep,
                 edgesTableData,
                 prevDelta,
-                prevGrad,
+                prevWijZero,
+                prevDeltaWijZero,
                 prevDeltaW,
                 prevNewW,
                 prevEdge,
                 currentDelta: "",
-                currentGrad: "",
+                currentDeltaWijZero: "",
+                currentWijZero: "",
                 currentDeltaW: "",
                 currentNewW: "",
                 currentEdge: [],
@@ -556,7 +576,8 @@ function bindActionListeners(appInstance)
                 let edgesTableData = state.edgesTableData.slice();
                 // let currentSelectedNodeIdNumber = Number(state.prevSelectedNodeId.match(/(\d+)/)[0]);
                 let prevDelta = edgesTableData[edgesTableData.length - 1].delta;
-                let prevGrad = edgesTableData[edgesTableData.length - 1].grad;
+                let prevWijZero = edgesTableData[edgesTableData.length - 1].wijZero
+                let prevDeltaWijZero = edgesTableData[edgesTableData.length - 1].deltaWijZero;
                 let prevDeltaW = edgesTableData[edgesTableData.length - 1].deltaW;
                 let prevNewW = edgesTableData[edgesTableData.length - 1].newW;
                 let prevEdge = edgesTableData[edgesTableData.length - 1].edge;
@@ -570,7 +591,8 @@ function bindActionListeners(appInstance)
                     edgesTableData,
                     selectedEdges,
                     currentDelta: prevDelta,
-                    currentGrad: prevGrad,
+                    currentWijZero: prevWijZero,
+                    currentDeltaWijZero: prevDeltaWijZero,
                     currentDeltaW: prevDeltaW,
                     currentNewW: prevNewW,
                     currentEdge: prevEdge,
@@ -589,12 +611,6 @@ function bindActionListeners(appInstance)
 }
 
 function renderDag(state, appInstance) {
-    //удаляем содержимое графа для экономия памяти браузера
-    let graphContainer = document.getElementById('graphContainer');
-    while (graphContainer.firstChild) {
-        graphContainer.removeChild(graphContainer.firstChild);
-    }
-
     let s = new sigma({
         renderers: [{
             container: document.getElementById('graphContainer'),
