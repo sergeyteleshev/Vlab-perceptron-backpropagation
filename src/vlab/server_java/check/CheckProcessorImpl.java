@@ -60,6 +60,9 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         JSONObject backpropagationAnswer = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
         JSONObject convertedClientAnswer = convertClientAnswer(clientAnswer);
 
+        backpropagationAnswer.put("wijZero", edgeWeight);
+        backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);
+
         JSONObject compareResult = compareAnswers(backpropagationAnswer, convertedClientAnswer, Consts.tablePoints);
         double comparePoints = compareResult.getDouble("points");
         String compareComment = compareResult.getString("comment");
@@ -111,6 +114,8 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         double[][] newW = new double[clientAnswer.length()][clientAnswer.length()];
         double[] delta = new double[clientAnswer.length()];
         double[][] deltaW = new double[clientAnswer.length()][clientAnswer.length()];
+        double[][] deltaWijZero = new double[clientAnswer.length()][clientAnswer.length()];
+        double[][] wijZero = new double[clientAnswer.length()][clientAnswer.length()];
         double[][] grad = new double[clientAnswer.length()][clientAnswer.length()];
 
         for (int i = 0; i < clientAnswer.length(); i++)
@@ -120,6 +125,8 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             {
                 newW[i][j] = 0;
                 deltaW[i][j] = 0;
+                deltaWijZero[i][j] = 0;
+                wijZero[i][j] = 0;
                 grad[i][j] = 0;
             }
         }
@@ -132,12 +139,16 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             newW[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("newW");
             delta[i] = clientAnswer.getJSONObject(i).getDouble("delta");
             deltaW[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("deltaW");
+            deltaWijZero[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("deltaWijZero");
+            wijZero[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("wijZero");
             grad[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("grad");
         }
 
         clientAnswerConverted.put("newW", newW);
         clientAnswerConverted.put("delta", delta);
         clientAnswerConverted.put("deltaW", deltaW);
+        clientAnswerConverted.put("deltaWijZero", deltaWijZero);
+        clientAnswerConverted.put("wijZero", wijZero);
         clientAnswerConverted.put("grad", grad);
 
         return clientAnswerConverted;
@@ -189,6 +200,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
     private static JSONObject compareAnswers(JSONObject serverAnswer, JSONObject clientAnswer, double pointPercent)
     {
+        //todo сделать норм оценку
         int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
         double pointDelta = pointPercent / serverAnswer.length();
         double points = pointPercent;
@@ -203,6 +215,12 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
         double[][] serverGrad = (double[][]) serverAnswer.get("grad");
         double[][] clientGrad = (double[][]) clientAnswer.get("grad");
+
+        double[][] serverWijZero = twoDimensionalJsonArrayToDouble(serverAnswer.getJSONArray("wijZero"));
+        double[][] clientWijZero = (double[][]) clientAnswer.get("wijZero");
+
+        double[][] serverDeltaWijZero = (double[][]) serverAnswer.get("deltaWijZero");
+        double[][] clientDeltaWijZero = (double[][]) clientAnswer.get("deltaWijZero");
 
         double[][] serverDeltaW = (double[][]) serverAnswer.get("deltaW");
         double[][] clientDeltaW = (double[][]) clientAnswer.get("deltaW");
@@ -225,7 +243,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 if(!isDeltaCorrect)
                 {
                     points -= pointDelta / nodesAmount;
-                    comment.append("Неверно рассчитано delta вершины n").append(Integer.toString(i)).append(". ");
+                    comment.append("Неверно рассчитано &delta;(X<sub>j</sub>) нейрона ").append(Integer.toString(i)).append(". ");
                 }
 
                 for (int j = 0; j < nodesAmount; j++)
@@ -233,19 +251,31 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                     if(!(clientNewW[i][j] >= serverNewW[i][j] - WEpsilon && clientNewW[i][j] <= serverNewW[i][j] + WEpsilon))
                     {
                         points -= pointDelta / nodesAmount;
-                        comment.append("Неверно рассчитано NewW ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                        comment.append("W<sub>ij</sub><sup>1</sup> дуги w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
                     }
 
-                    if(!(clientGrad[i][j] >= serverGrad[i][j] - gradEpsilon && clientGrad[i][j] <= serverGrad[i][j] + gradEpsilon))
+                    if(!(clientDeltaWijZero[i][j] >= serverDeltaWijZero[i][j] - deltaWijZeroEpsilon && clientDeltaWijZero[i][j] <= serverDeltaWijZero[i][j] + deltaWijZeroEpsilon))
                     {
                         points -= pointDelta / nodesAmount;
-                        comment.append("Неверно рассчитано grad ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                        comment.append("Неверно рассчитано &Delta;W<sub>ij</sub><sup>0</sup> дуги w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                    }
+
+                    if(!(clientWijZero[i][j] >= serverWijZero[i][j] - wijZeroEpsilon && clientWijZero[i][j] <= serverWijZero[i][j] + wijZeroEpsilon))
+                    {
+                        points -= pointDelta / nodesAmount;
+                        comment.append("Неверно рассчитано W<sub>ij</sub><sup>0</sup> дуги w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
                     }
 
                     if(!(clientDeltaW[i][j] >= serverDeltaW[i][j] - dtWEpsilon && clientDeltaW[i][j] <= serverDeltaW[i][j] + dtWEpsilon))
                     {
                         points -= pointDelta / nodesAmount;
-                        comment.append("Неверно рассчитано deltaW ребра w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                        comment.append("Неверно рассчитано Неверно рассчитано &Delta;W<sub>ij</sub><sup>1</sup> дуги w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
+                    }
+
+                    if(!(clientGrad[i][j] >= serverGrad[i][j] - gradEpsilon && clientGrad[i][j] <= serverGrad[i][j] + gradEpsilon))
+                    {
+                        points -= pointDelta / nodesAmount;
+                        comment.append("Неверно рассчитано Неверно рассчитано grad дуги w").append(Integer.toString(i)).append(Integer.toString(j)).append(". ");
                     }
                 }
             }
