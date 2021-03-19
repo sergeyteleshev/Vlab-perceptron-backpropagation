@@ -34,6 +34,12 @@
     border-radius: 5px;
 }
 
+#jsLab .addStepBackpropagation, #jsLab .minusStepBackpropagation, #jsLab .addStep, #jsLab .minusStep
+{
+    width: 40px;
+    height: 40px;
+}
+
 #jsLab .backpropagation td:first-child
 {
     white-space: nowrap;
@@ -46,6 +52,7 @@
 
 #jsLab .steps-buttons-backpropagation
 {
+    margin-top: 30px;
     margin-bottom: 20px;
 }
 
@@ -334,5 +341,16 @@
     display: inline-flex;
     justify-content: space-between;
     padding: 10px;
+    width: 100%;
+}
+
+#jsLab .next-table-step-buttons
+{
+    margin-top: 20px;
+    width: 100%;
+}
+
+#jsLab .backpropagationContainer
+{
     width: 100%;
 }

@@ -19,7 +19,7 @@ public class GenerateProcessorImpl implements GenerateProcessor {
     @Override
     public GeneratingResult generate(String condition) {
         //do Generate logic here
-        String text;
+        StringBuilder text = new StringBuilder();
         String code;
         String instructions = "instructions";
 
@@ -41,9 +41,28 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         double[][] edgeWeight = (double[][]) randomGraph.get("edgeWeight");
         int[][] edges = (int[][]) randomGraph.get("edges");
         int[] nodes = (int[]) randomGraph.get("nodes");
-        double[] nodesValue = getSignalWithNewEdges(nodes, edges, edgeWeight, (double[]) randomGraph.get("nodesValue"), sigmoidFunction);
-        double[] currentNodesValue = getSignalWithNewEdges(nodes, edges, edgeWeight, nodesValue, sigmoidFunction);
+        double[] nodesValue = (double[]) randomGraph.get("nodesValue");
         int[] nodesLevel = (int[]) randomGraph.get("nodesLevel");
+
+//        int[][] edges = {
+//                {0,0,1,1,0},
+//                {0,0,1,1,0},
+//                {0,0,0,0,1},
+//                {0,0,0,0,1},
+//                {0,0,0,0,0},
+//        };
+//        int[] nodes = {0,1,2,3,4};
+//        double[] nodesValue = {1,0,0.61,0.69,0.33};
+//        double[][] edgeWeight = {
+//                {0,0,0.45,0.78,0},
+//                {0,0,-0.12,0.13,0},
+//                {0,0,0,0,1.5},
+//                {0,0,0,0,-2.3},
+//                {0,0,0,0,0},
+//        };
+//        int[] nodesLevel = {1,1,2,2,3}
+//
+//        ;
 
         edgesAmount = countEdges(edges);
 
@@ -66,13 +85,18 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         JSONArray jsonNodesValue = jsonCode.getJSONArray("nodesValue");
         initialGraphMSE = doubleToTwoDecimal(countMSE(jsonNodesValue));
 
+        text.append("E = 0.7, alpha = 0.3, dtW(i-1) = 0. ");
+
+        for (int i = 0; i < inputNeuronsAmount; i++)
+        {
+            text.append(("input(X")).append(i).append(") = ").append(nodesValue[i]).append(". ");
+        }
+
         //раскомментить, чтобы увидеь ответ в описании лабы
 //        JSONObject backpropagationAnswer = backpropagation(nodesValue, edgeWeight);
 //        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + " " + backpropagationAnswerToReadble(backpropagationAnswer);
 
-        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новое значение MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + ", E = 0.7, alpha = 0.3, dtW(i-1) = 0.";
-
-        return new GeneratingResult(text, code, instructions);
+        return new GeneratingResult(text.toString().toString(), code, instructions);
     }
 
     private String backpropagationAnswerToReadble(JSONObject backpropagationAnswer)

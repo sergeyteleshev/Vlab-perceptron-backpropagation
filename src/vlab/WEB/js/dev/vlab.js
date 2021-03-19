@@ -1,29 +1,3 @@
-const test_graph = {
-    nodes: [0,1,2,3,4],
-    nodesLevel: [1,1,2,2,3],
-    nodesValue: [1,0,0.61,0.69,0.33],
-    edges: [
-        [0,0,1,1,0],
-        [0,0,1,1,0],
-        [0,0,0,0,1],
-        [0,0,0,0,1],
-        [0,0,0,0,0],
-    ],
-    edgeWeight: [
-        [0,0,0.45,0.78,0],
-        [0,0,-0.12,0.13,0],
-        [0,0,0,0,1.5],
-        [0,0,0,0,-2.3],
-        [0,0,0,0,0],
-    ],
-    inputNeuronsAmount: 2,
-    outputNeuronsAmount: 1,
-    amountOfNodesInHiddenLayer: 1,
-    edgesAmount: 6,
-    newNodesValue: [],
-    initialNodesValue: [],
-};
-
 function roundToTwoDecimals(num)
 {
     return Math.round(num * 100) / 100;
@@ -46,17 +20,12 @@ function getNodesSignal(nodes, edges, edgesWeight, nodesValue, inputNeuronsAmoun
 
         nodeInputSignal = roundToTwoDecimals(nodeInputSignal);
         nodeOutputSignal = sigmoid(nodeInputSignal);
-        nodeOutputSignal= roundToTwoDecimals(nodeOutputSignal);
+        nodeOutputSignal = roundToTwoDecimals(nodeOutputSignal);
 
         nodesValue[i] = nodeOutputSignal;
     }
 
     return nodesValue;
-}
-
-function roundToTwoDecimals(x)
-{
-    return Math.round((x + Number.EPSILON) * 100) / 100;
 }
 
 function sigmoid(x)
@@ -183,6 +152,7 @@ function getHTML(templateData) {
     let currentEdgeString = "";
 
     let countInvalidNodesValue = 0;
+    let countSelectedEdges = templateData.selectedEdges.length;
 
     if(templateData.nodesValue)
     {
@@ -252,17 +222,19 @@ function getHTML(templateData) {
     `;
     }
 
-    if(templateData.neuronsTableData)
+    for(let i = 0; i < templateData.neuronsTableData.length; i++)
     {
-        for(let i = 0; i < templateData.neuronsTableData.length; i++)
-        {
-            tableData += `<tr>
+        let currentNodeSection = [templateData.neuronsTableData[i].nodeSection].toString().replaceAll("n", "");
+        if (currentNodeSection.length === 0)
+            currentNodeSection = "-";
+
+        tableData += `<tr>
             <td>
-                ${templateData.neuronsTableData[i].nodeId}
+                ${templateData.neuronsTableData[i].nodeId.substring(1)}
             </td>
             <td>
-                ${templateData.neuronsTableData[i].neuronInputSignalFormula}
-            </td>
+                ${currentNodeSection}
+            </td>            
             <td>
                 ${templateData.neuronsTableData[i].neuronInputSignalValue}            
             </td>
@@ -270,7 +242,69 @@ function getHTML(templateData) {
                 ${templateData.neuronsTableData[i].neuronOutputSignalValue}            
             </td>
         </tr>`;
+    }
+
+    let currentNeuronInputSignalValue = `<input id="currentNeuronInputSignalValue" placeholder="Введите число" class="tableInputData" type="number" value="${templateData.currentNeuronInputSignalValue}"/>`
+    let currentNeuronOutputSignalValue = `<input id="currentNeuronOutputSignalValue" placeholder="Введите число" class="tableInputData" type="number" value="${templateData.currentNeuronOutputSignalValue}"/>`
+
+    if(templateData.currentStep !== templateData.inputNeuronsAmount + templateData.amountOfHiddenLayers * templateData.amountOfNodesInHiddenLayer + templateData.outputNeuronsAmount)
+    {
+        let currentNodeSection = [...templateData.currentNodeSection];
+        for(let i = 0; i < currentNodeSection.length; i++)
+        {
+            currentNodeSection[i] = currentNodeSection[i].substring(1);
         }
+
+        if (currentNodeSection.length === 0)
+            currentNodeSection = "-";
+
+        tableData += `<tr>
+            <td>
+                ${templateData.currentSelectedNodeId ? templateData.currentSelectedNodeId.substring(1) : ""}
+            </td>
+            <td>
+                ${currentNodeSection}
+            </td>          
+            <td>            
+                ${currentNeuronInputSignalValue}
+            </td>
+            <td>
+                ${currentNeuronOutputSignalValue}                
+            </td>
+        </tr>`;
+    }
+
+    let backpropagationContainer = "";
+
+    if(templateData.isZeroForwardPropagationDone === true)
+    {
+        backpropagationContainer = `<div class="backpropagationContainer">
+            <div class="steps-buttons-backpropagation">
+                <input id="addStepBackpropagation" class="addStepBackpropagation btn btn-success" type="button"
+                       value="+"/>
+                <input type="button" class="minusStepBackpropagation btn btn-danger" value="-">
+            </div>
+            <table class="backpropagation steps-table">
+                <tr>
+                    <th>(X<sub>i</sub>, X<sub>j</sub>)</th>
+                    <th>W<sub>ij</sub><sup>0</sup></th>
+                    <th>&Delta;W<sub>ij</sub><sup>0</sup></th>
+                    <th>&delta;(X<sub>j</sub>)</th>
+                    <th>p<sup>1</sup>(W<sub>i</sub><sub>j</sub>)</th>
+                    <th>&Delta;W<sub>ij</sub><sup>1</sup></th>
+                    <th>W<sub>ij</sub><sup>1</sup></th>
+                </tr>
+                ${backPropagationData}
+            </table>
+            <div class="maxFlow">
+                <span>E<sup>1</sup>(w):</span>  
+                <input type='number' ${countSelectedEdges === templateData.edgesAmount && templateData.isBackpropagationDone === false && templateData.isFirstForwardPropagationDone === false ? "" : "disabled"} class='maxFlow-input' id="error" value="${templateData.error}"'/>                       
+            </div>     
+            <div class="next-table-step-buttons">
+                <input id="createFirstForwardPropagationTable" class="btn btn-info" type="button" value="Далее"/>
+                <input id="cancelBackpropagationTable" class="btn btn-secondary" type="button" value="Назад"/>                        
+            </div>
+        </div>`;
     }
 
     return `
@@ -285,29 +319,27 @@ function getHTML(templateData) {
                     <div id="graphContainer"></div>
                 </div>                               
                 <div class="steps">
-                    <div class="steps-buttons-backpropagation">
-                        <input id="addStepBackpropagation" class="addStepBackpropagation btn btn-success" type="button" value="+"/>
-                        <input type="button" class="minusStepBackpropagation btn btn-danger" value="-">                                
-                    </div>
-                    <table class="backpropagation steps-table">     
+                    <div class="steps-buttons">
+                        <input id="addStep" class="addStep btn btn-success" type="button" value="+"/>
+                        <input type="button" class="minusStep btn btn-danger" value="-">                                
+                    </div>  
+                    <table class="steps-table">
                         <tr>
-                            <th>
-                                <p>Дуга</p>
-                                <p>(X<sub>i</sub>, X<sub>j</sub>)</p>
-                            </th>
-                            <th>W<sub>ij</sub><sup>0</sup></th>
-                            <th>&Delta;W<sub>ij</sub><sup>0</sup></th>
-                            <th>&delta;(X<sub>j</sub>)</th>
-                            <th>p<sup>1</sup>(W<sub>i</sub><sub>j</sub>)</th>                           
-                            <th>&Delta;W<sub>ij</sub><sup>1</sup></th>
-                            <th>W<sub>ij</sub><sup>1</sup></th>
-                        </tr>                
-                        ${backPropagationData}
-                    </table>                                       
+                            <th>X</th>
+                            <th>Прообразы X</th>                                   
+                            <th>input(X)</th>
+                            <th>output(X)</th>
+                        </tr>                        
+                        ${tableData}                                        
+                    </table> 
                     <div class="maxFlow">
-                        <span>MSE:</span>
-                        <input type='number' ${countInvalidNodesValue !== 0 || templateData.isBackpropagationDone === false ? "disabled" : ""} class='maxFlow-input' id="error" value="${templateData.error}"'/>                       
-                    </div>                                                                                                                                            
+                        <span>E<sup>0</sup>(w):</span>  
+                        <input type='number' ${countInvalidNodesValue !== 0 || templateData.isZeroForwardPropagationDone === true ? "disabled" : ""} class='maxFlow-input' id="errorZero" value="${templateData.errorZero}"'/>                       
+                    </div>  
+                    <div class="next-table-step-buttons">
+                        <input id="createBackpropagationTable" class="btn btn-info" type="button" value="Далее"/>
+                    </div>
+                    ${backpropagationContainer}                                                                                                                                                                                                                      
                 </div> 
                 <div class="lab-header">                                        
                     <!-- Button trigger modal -->                                        
@@ -342,23 +374,26 @@ function renderTemplate(element, html) {
 
 function initState() {
     let _state = {
-        currentNodeSection: [],
         neuronsTableData: [],
+        firstPropagationNeuronsTableData: [],
         edgesTableData: [],
+        currentNodeSection: [],
         currentSelectedNodeId: "",
+        currentNeuronInputSignalValue: "",
+        currentNeuronOutputSignalValue: "",
         prevSelectedNodeId: "",
-        prevNeuronInputSignalFormula: "",
         prevNeuronInputSignalValue: "",
         prevNeuronOutputSignalValue: "",
         prevNodeSection: [],
-        currentNeuronInputSignalFormula: "",
-        currentNeuronInputSignalValue: "",
-        currentNeuronOutputSignalValue: "",
         error: 0,
+        errorZero: 0,
         isSelectingNodesModeActivated: false,
         currentStep: 0,
+        currentFirstPropagationStep: 0,
         currentEdgeStep: 0,
         isBackpropagationDone: false,
+        isZeroForwardPropagationDone: false,
+        isFirstForwardPropagationDone: false,
         currentEdge: [],
         selectedEdges: [],
         currentWijZero: null,
@@ -462,6 +497,184 @@ function App() {
 
 function bindActionListeners(appInstance)
 {
+    if(document.getElementById("cancelBackpropagationTable"))
+    {
+        document.getElementById("cancelBackpropagationTable").addEventListener('click', () => {
+            // обновляем стейт приложение
+            const state = appInstance.state.updateState((state) => {
+                return  {
+                    ...state,
+                    isBackpropagationDone: false,
+                    isZeroForwardPropagationDone: false,
+                    edgesTableData: [],
+                    error: 0,
+                    currentEdge: [],
+                    selectedEdges: [],
+                    currentEdgeStep: 0,
+                }
+            });
+
+            // перересовываем приложение
+            appInstance.subscriber.emit('render', state);
+        });
+    }
+
+    if(document.getElementById("createFirstForwardPropagationTable"))
+    {
+        document.getElementById("createFirstForwardPropagationTable").addEventListener('click', () => {
+            // обновляем стейт приложение
+            const state = appInstance.state.updateState((state) => {
+                return  {
+                    ...state,
+                    isBackpropagationDone: true,
+                }
+            });
+
+            // перересовываем приложение
+            appInstance.subscriber.emit('render', state);
+        });
+    }
+
+    if(document.getElementById("createBackpropagationTable"))
+    {
+        document.getElementById("createBackpropagationTable").addEventListener('click', () => {
+            // обновляем стейт приложение         )
+            let zeroForwardPropagationMSE = +document.getElementById("errorZero").value;
+
+            const state = appInstance.state.updateState((state) => {
+                if(state.nodesValue.length === state.neuronsTableData.length && !Number.isNaN(zeroForwardPropagationMSE))
+                {
+                    return  {
+                        ...state,
+                        errorZero: zeroForwardPropagationMSE,
+                        isZeroForwardPropagationDone: true,
+                    }
+                }
+
+                return {
+                    ...state,
+                }
+            });
+
+            // перересовываем приложение
+            appInstance.subscriber.emit('render', state);
+        });
+    }
+
+    document.getElementById("addStep").addEventListener('click', () => {
+        // обновляем стейт приложение
+        const state = appInstance.state.updateState((state) => {
+            let currentStep = state.currentStep;
+            let neuronsTableData = state.neuronsTableData.slice();
+            let nodesValue = state.nodesValue.slice();
+            let currentSelectedNodeIdNumber = state.currentSelectedNodeId.match(/(\d+)/)[0];
+            let currentNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+            let currentNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+
+            let prevSelectedNodeId = state.currentSelectedNodeId;
+            let prevNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+            let prevNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+            let prevNodeSection = state.currentNodeSection.slice();
+
+            if(currentNeuronInputSignalValue === "")
+                currentNeuronInputSignalValue = 0;
+            if(currentNeuronOutputSignalValue === "")
+                currentNeuronOutputSignalValue = 0;
+
+            if(neuronsTableData.length < state.inputNeuronsAmount && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue))
+            {
+                nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
+                currentStep++;
+                neuronsTableData.push({
+                    nodeId: state.currentSelectedNodeId,
+                    neuronInputSignalValue: currentNeuronInputSignalValue,
+                    neuronOutputSignalValue: currentNeuronOutputSignalValue,
+                    nodeSection: [],
+                });
+            }
+            else if(state.currentSelectedNodeId.length > 0 && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue)
+                && state.currentNodeSection.length > 0)
+            {
+                nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
+                currentStep++;
+                neuronsTableData.push({
+                    nodeId: state.currentSelectedNodeId,
+                    neuronInputSignalValue: currentNeuronInputSignalValue,
+                    neuronOutputSignalValue: currentNeuronOutputSignalValue,
+                    nodeSection: state.currentNodeSection,
+                });
+            }
+            else
+            {
+                return {
+                    ...state,
+                }
+            }
+
+            return  {
+                ...state,
+                currentStep,
+                neuronsTableData,
+                nodesValue,
+                prevSelectedNodeId,
+                prevNeuronInputSignalValue,
+                prevNeuronOutputSignalValue,
+                prevNodeSection,
+                currentSelectedNodeId: "",
+                currentNeuronInputSignalValue: "",
+                currentNeuronOutputSignalValue: "",
+                currentNodeSection: [],
+                isSelectingNodesModeActivated: false,
+            }
+        });
+
+        // перересовываем приложение
+        appInstance.subscriber.emit('render', state);
+    });
+
+    document.getElementsByClassName("minusStep")[0].addEventListener('click', () => {
+        // обновляем стейт приложение
+        const state = appInstance.state.updateState((state) => {
+            if(state.currentStep > 0)
+            {
+                let neuronsTableData = state.neuronsTableData.slice();
+                let currentSelectedNodeIdNumber = Number(neuronsTableData[neuronsTableData.length - 1].nodeId.match(/(\d+)/)[0]);
+                let currentNodeSection = neuronsTableData[neuronsTableData.length - 1].nodeSection;
+                let currentNeuronInputSignalValue = neuronsTableData[neuronsTableData.length - 1].neuronInputSignalValue;
+                let currentNeuronOutputSignalValue = neuronsTableData[neuronsTableData.length - 1].neuronOutputSignalValue;
+                let currentSelectedNodeId = neuronsTableData[neuronsTableData.length - 1].nodeId;
+
+                neuronsTableData.pop();
+                let nodesValueCopy = state.nodesValue.slice();
+                nodesValueCopy[currentSelectedNodeIdNumber] = null;
+                let prevNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+                let prevNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+                let prevNodeSection = state.currentNodeSection;
+
+                return  {
+                    ...state,
+                    neuronsTableData,
+                    prevNeuronInputSignalValue,
+                    prevNeuronOutputSignalValue,
+                    currentStep: state.currentStep - 1,
+                    currentSelectedNodeId,
+                    currentNeuronInputSignalValue,
+                    currentNeuronOutputSignalValue,
+                    currentNodeSection,
+                    isSelectingNodesModeActivated: false,
+                    nodesValue: nodesValueCopy,
+                }
+            }
+
+            return  {
+                ...state,
+            }
+        });
+
+        // перересовываем приложение
+        appInstance.subscriber.emit('render', state);
+    });
+
     document.getElementsByClassName('redrawGraph')[0].addEventListener('click', () => {
         const state = appInstance.state.updateState((state) => {
             let yLevelRandomDisplacement = state.nodes.map(() => {
@@ -498,137 +711,152 @@ function bindActionListeners(appInstance)
         appInstance.subscriber.emit('render', state);
     });
 
-    document.getElementById("addStepBackpropagation").addEventListener('click', () => {
-        const state = appInstance.state.updateState((state) => {
-            let currentEdgeStep = state.currentEdgeStep;
-            let edgesTableData = state.edgesTableData.slice();
-            let edgeWeight = state.edgeWeight.slice();
-            let nodesValue = state.nodesValue.slice();
-
-            let prevDelta = state.currentDelta;
-            let prevWijZero = state.currentWijZero;
-            let prevDeltaWijZero = state.currentDeltaWijZero;
-            let prevDeltaW = state.currentDeltaW ;
-            let prevNewW = state.currentNewW;
-            let prevGrad = state.currentGrad;
-            let prevEdge = state.currentEdge.slice();
-            let selectedEdges = state.selectedEdges.slice();
-            let isBackpropagationDone = false;
-            let nodes = state.nodes;
-            let edges = state.edges;
-            let inputNeuronsAmount = state.inputNeuronsAmount;
-            let newNodesValue = state.newNodesValue;
-
-            selectedEdges.push("w" + state.currentEdge[0] + state.currentEdge[1]);
-
-            if(selectedEdges.length === state.edgesAmount)
-            {
-                isBackpropagationDone = true;
-
-                let newEdgesWeight = convertEdgesTableDataToMatrix(edgesTableData).newW;
-                console.log("newEdgesWeight", newEdgesWeight);
-                nodesValue = getNodesSignal(nodes, edges, newEdgesWeight, nodesValue, inputNeuronsAmount);
-                newNodesValue = nodesValue.slice();
-
-                for(let i = 0; i < edgesTableData.length; i++)
-                    edgeWeight[edgesTableData[i].edge[0]][edgesTableData[i].edge[1]] = edgesTableData[i].newW;
-
-                selectedEdges = [];
-            }
-
-            if(state.currentEdge.length > 0 && !isNaN(state.currentDelta)
-                && !isNaN(state.currentWijZero) && !isNaN(state.currentDeltaWijZero) && !isNaN(state.currentDeltaW) && !isNaN(state.currentNewW))
-            {
-                currentEdgeStep++;
-                edgesTableData.push({
-                    edge: state.currentEdge.slice(),
-                    delta: Number(document.getElementById("delta").value),
-                    wijZero: Number(document.getElementById("wijZero").value),
-                    deltaWijZero: Number(document.getElementById("deltaWijZero").value),
-                    deltaW: Number(document.getElementById("deltaW").value),
-                    newW: Number(document.getElementById("newW").value),
-                    grad: Number(document.getElementById("grad").value),
-                });
-            }
-            else
-            {
-                return {
-                    ...state,
-                }
-            }
-
-            return  {
-                ...state,
-                edgeWeight,
-                newNodesValue,
-                nodesValue,
-                isBackpropagationDone,
-                currentEdgeStep,
-                edgesTableData,
-                prevDelta,
-                prevWijZero,
-                prevGrad,
-                prevDeltaWijZero,
-                prevDeltaW,
-                prevNewW,
-                prevEdge,
-                currentDelta: "",
-                currentDeltaWijZero: "",
-                currentWijZero: "",
-                currentDeltaW: "",
-                currentNewW: "",
-                currentEdge: [],
-                currentGrad: "",
-                selectedEdges,
-            }
-        });
-
-        // перересовываем приложение
-        appInstance.subscriber.emit('render', state);
-    });
-
-    document.getElementsByClassName("minusStepBackpropagation")[0].addEventListener('click', () => {
-        // обновляем стейт приложение
-        const state = appInstance.state.updateState((state) => {
-            if(state.currentEdgeStep > 0)
-            {
+    if(document.getElementById("addStepBackpropagation"))
+    {
+        document.getElementById("addStepBackpropagation").addEventListener('click', () => {
+            const state = appInstance.state.updateState((state) => {
+                let currentEdgeStep = state.currentEdgeStep;
                 let edgesTableData = state.edgesTableData.slice();
-                // let currentSelectedNodeIdNumber = Number(state.prevSelectedNodeId.match(/(\d+)/)[0]);
-                let prevDelta = edgesTableData[edgesTableData.length - 1].delta;
-                let prevWijZero = edgesTableData[edgesTableData.length - 1].wijZero
-                let prevDeltaWijZero = edgesTableData[edgesTableData.length - 1].deltaWijZero;
-                let prevDeltaW = edgesTableData[edgesTableData.length - 1].deltaW;
-                let prevNewW = edgesTableData[edgesTableData.length - 1].newW;
-                let prevEdge = edgesTableData[edgesTableData.length - 1].edge;
-                let prevGrad = edgesTableData[edgesTableData.length - 1].grad;
-                let selectedEdges = state.selectedEdges.slice();
+                let edgeWeight = state.edgeWeight.slice();
+                let nodesValue = state.nodesValue.slice();
 
-                edgesTableData.pop();
-                selectedEdges.pop();
+                let prevDelta = state.currentDelta;
+                let prevWijZero = state.currentWijZero;
+                let prevDeltaWijZero = state.currentDeltaWijZero;
+                let prevDeltaW = state.currentDeltaW ;
+                let prevNewW = state.currentNewW;
+                let prevGrad = state.currentGrad;
+                let prevEdge = state.currentEdge.slice();
+                let selectedEdges = state.selectedEdges.slice();
+                let isBackpropagationDone = false;
+                let newNodesValue = state.newNodesValue;
+
+                selectedEdges.push("w" + state.currentEdge[0] + state.currentEdge[1]);
+
+                if(state.currentEdge.length > 0 && !isNaN(state.currentDelta)
+                    && !isNaN(state.currentWijZero) && !isNaN(state.currentDeltaWijZero) && !isNaN(state.currentDeltaW) && !isNaN(state.currentNewW))
+                {
+                    currentEdgeStep++;
+                    edgesTableData.push({
+                        edge: state.currentEdge.slice(),
+                        delta: Number(document.getElementById("delta").value),
+                        wijZero: Number(document.getElementById("wijZero").value),
+                        deltaWijZero: Number(document.getElementById("deltaWijZero").value),
+                        deltaW: Number(document.getElementById("deltaW").value),
+                        newW: Number(document.getElementById("newW").value),
+                        grad: Number(document.getElementById("grad").value),
+                    });
+                }
+                else
+                {
+                    return {
+                        ...state,
+                    }
+                }
 
                 return  {
                     ...state,
+                    edgeWeight,
+                    newNodesValue,
+                    nodesValue,
+                    isBackpropagationDone,
+                    currentEdgeStep,
                     edgesTableData,
+                    prevDelta,
+                    prevWijZero,
+                    prevGrad,
+                    prevDeltaWijZero,
+                    prevDeltaW,
+                    prevNewW,
+                    prevEdge,
+                    currentDelta: "",
+                    currentDeltaWijZero: "",
+                    currentWijZero: "",
+                    currentDeltaW: "",
+                    currentNewW: "",
+                    currentEdge: [],
+                    currentGrad: "",
                     selectedEdges,
-                    currentDelta: prevDelta,
-                    currentWijZero: prevWijZero,
-                    currentDeltaWijZero: prevDeltaWijZero,
-                    currentDeltaW: prevDeltaW,
-                    currentNewW: prevNewW,
-                    currentEdge: prevEdge,
-                    currentGrad: prevGrad,
-                    currentEdgeStep: state.currentEdgeStep - 1,
                 }
-            }
+            });
 
-            return  {
-                ...state,
-            }
+            // перересовываем приложение
+            appInstance.subscriber.emit('render', state);
+        });
+    }
+
+    if(document.getElementsByClassName("minusStepBackpropagation")[0])
+    {
+        document.getElementsByClassName("minusStepBackpropagation")[0].addEventListener('click', () => {
+            // обновляем стейт приложение
+            const state = appInstance.state.updateState((state) => {
+                if(state.currentEdgeStep > 0)
+                {
+                    let edgesTableData = state.edgesTableData.slice();
+                    // let currentSelectedNodeIdNumber = Number(state.prevSelectedNodeId.match(/(\d+)/)[0]);
+                    let prevDelta = edgesTableData[edgesTableData.length - 1].delta;
+                    let prevWijZero = edgesTableData[edgesTableData.length - 1].wijZero
+                    let prevDeltaWijZero = edgesTableData[edgesTableData.length - 1].deltaWijZero;
+                    let prevDeltaW = edgesTableData[edgesTableData.length - 1].deltaW;
+                    let prevNewW = edgesTableData[edgesTableData.length - 1].newW;
+                    let prevEdge = edgesTableData[edgesTableData.length - 1].edge;
+                    let prevGrad = edgesTableData[edgesTableData.length - 1].grad;
+                    let selectedEdges = state.selectedEdges.slice();
+
+                    edgesTableData.pop();
+                    selectedEdges.pop();
+
+                    return  {
+                        ...state,
+                        edgesTableData,
+                        selectedEdges,
+                        currentDelta: prevDelta,
+                        currentWijZero: prevWijZero,
+                        currentDeltaWijZero: prevDeltaWijZero,
+                        currentDeltaW: prevDeltaW,
+                        currentNewW: prevNewW,
+                        currentEdge: prevEdge,
+                        currentGrad: prevGrad,
+                        currentEdgeStep: state.currentEdgeStep - 1,
+                    }
+                }
+
+                return  {
+                    ...state,
+                }
+            });
+
+            // перересовываем приложение
+            appInstance.subscriber.emit('render', state);
+        });
+    }
+
+
+
+    if(appInstance.state.getState().currentStep !== appInstance.state.getState().inputNeuronsAmount + appInstance.state.getState().amountOfNodesInHiddenLayer * appInstance.state.getState().amountOfHiddenLayers + appInstance.state.getState().outputNeuronsAmount)
+    {
+        document.getElementById("currentNeuronOutputSignalValue").addEventListener('change', () => {
+            const state = appInstance.state.updateState((state) => {
+                return {
+                    ...state,
+                    currentNeuronOutputSignalValue: Number(document.getElementById("currentNeuronOutputSignalValue").value),
+                }
+            });
+
+            appInstance.subscriber.emit('render', state);
         });
 
-        // перересовываем приложение
-        appInstance.subscriber.emit('render', state);
-    });
+        document.getElementById("currentNeuronInputSignalValue").addEventListener('change', () => {
+            const state = appInstance.state.updateState((state) => {
+                return {
+                    ...state,
+                    currentNeuronInputSignalValue: Number(document.getElementById("currentNeuronInputSignalValue").value),
+                }
+            });
+
+            appInstance.subscriber.emit('render', state);
+        });
+    }
 }
 
 function renderDag(state, appInstance) {
@@ -657,7 +885,7 @@ function renderDag(state, appInstance) {
 
     window.graph.bind('clickEdge', (res) => {
         const state = appInstance.state.updateState((state) => {
-            if(state.isBackpropagationDone === false)
+            if(state.isBackpropagationDone === false && state.isZeroForwardPropagationDone === true && state.nodesValue.length === state.neuronsTableData.length)
             {
                 if(state.currentEdge.length)
                 {
@@ -674,6 +902,10 @@ function renderDag(state, appInstance) {
                     }
                 }
             }
+            else
+            {
+                alert("Заполните сначала таблицу при k = 0!");
+            }
 
             return {
                 ...state,
@@ -685,7 +917,7 @@ function renderDag(state, appInstance) {
 
     window.graph.bind('clickNode', (res) => {
         const state = appInstance.state.updateState((state) => {
-            if(state.isBackpropagationDone)
+            if(!state.isBackpropagationDone)
             {
                 if(state.isSelectingNodesModeActivated)
                 {
@@ -795,6 +1027,10 @@ function init_lab() {
                     let yLevelRandomDisplacement = nodes.map(node => {
                         return 2 + Math.random() * 3; //смещение ноты по Y из-за того, что не видно значение ребра при отрисовке
                     });
+
+                    let initNodesValue = [...graph.nodesValue];
+                    initNodesValue.fill(null);
+                    graph.nodesValue = [...initNodesValue];
 
                     return {
                         ...state,
