@@ -27,14 +27,14 @@
     text-align: center;
 }
 
-#jsLab .addStep, #jsLab .minusStep, #jsLab .addStepBackpropagation, #jsLab .minusStepBackpropagation
+#jsLab .addStep, #jsLab .minusStep, #jsLab .addStepBackpropagation, #jsLab .minusStepBackpropagation, #jsLab .addStepFirstForwardPropagation, #jsLab .minusStepFirstForwardPropagation
 {
     text-align: center;
     height: 45px;
     border-radius: 5px;
 }
 
-#jsLab .addStepBackpropagation, #jsLab .minusStepBackpropagation, #jsLab .addStep, #jsLab .minusStep
+#jsLab .addStepBackpropagation, #jsLab .minusStepBackpropagation, #jsLab .addStep, #jsLab .minusStep, #jsLab .addStepFirstForwardPropagation, #jsLab .minusStepFirstForwardPropagation
 {
     width: 40px;
     height: 40px;
@@ -350,7 +350,7 @@
     width: 100%;
 }
 
-#jsLab .backpropagationContainer
+#jsLab .backpropagationContainer, #jsLab .firstForwardContainer
 {
     width: 100%;
 }

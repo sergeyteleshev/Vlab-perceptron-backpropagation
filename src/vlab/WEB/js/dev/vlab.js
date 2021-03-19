@@ -295,15 +295,91 @@ function getHTML(templateData) {
                     <th>W<sub>ij</sub><sup>1</sup></th>
                 </tr>
                 ${backPropagationData}
-            </table>
-            <div class="maxFlow">
-                <span>E<sup>1</sup>(w):</span>  
-                <input type='number' ${countSelectedEdges === templateData.edgesAmount && templateData.isBackpropagationDone === false && templateData.isFirstForwardPropagationDone === false ? "" : "disabled"} class='maxFlow-input' id="error" value="${templateData.error}"'/>                       
-            </div>     
+            </table>                 
             <div class="next-table-step-buttons">
                 <input id="createFirstForwardPropagationTable" class="btn btn-info" type="button" value="Далее"/>
                 <input id="cancelBackpropagationTable" class="btn btn-secondary" type="button" value="Назад"/>                        
-            </div>
+            </div>                           
+        </div>`;
+    }
+
+    let firstForwardPropagationContainer = "";
+
+    if(templateData.isBackpropagationDone === true && templateData.isZeroForwardPropagationDone === true)
+    {
+        let firstForwardPropagationTableData = "";
+
+        for(let i = 0; i < templateData.firstPropagationNeuronsTableData.length; i++)
+        {
+            let currentNodeSection = [templateData.firstPropagationNeuronsTableData[i].nodeSection].toString().replaceAll("n", "");
+            if (currentNodeSection.length === 0)
+                currentNodeSection = "-";
+
+            firstForwardPropagationTableData += `<tr>
+                <td>
+                    ${templateData.firstPropagationNeuronsTableData[i].nodeId.substring(1)}
+                </td>
+                <td>
+                    ${currentNodeSection}
+                </td>            
+                <td>
+                    ${templateData.firstPropagationNeuronsTableData[i].neuronInputSignalValue}            
+                </td>
+                <td>
+                    ${templateData.firstPropagationNeuronsTableData[i].neuronOutputSignalValue}            
+                </td>
+            </tr>`;
+        }
+
+        if(templateData.currentFirstPropagationStep !== templateData.inputNeuronsAmount + templateData.amountOfHiddenLayers * templateData.amountOfNodesInHiddenLayer + templateData.outputNeuronsAmount)
+        {
+            let currentNodeSection = [...templateData.currentNodeSection];
+            for(let i = 0; i < currentNodeSection.length; i++)
+            {
+                currentNodeSection[i] = currentNodeSection[i].substring(1);
+            }
+
+            if (currentNodeSection.length === 0)
+                currentNodeSection = "-";
+
+            firstForwardPropagationTableData += `<tr>
+                <td>
+                    ${templateData.currentSelectedNodeId ? templateData.currentSelectedNodeId.substring(1) : ""}
+                </td>
+                <td>
+                    ${currentNodeSection}
+                </td>          
+                <td>            
+                    ${currentNeuronInputSignalValue}
+                </td>
+                <td>
+                    ${currentNeuronOutputSignalValue}                
+                </td>
+            </tr>`;
+        }
+
+        firstForwardPropagationContainer = `<div class="firstForwardContainer">            
+            <p>k = 1</p>
+            <div class="steps-buttons">
+                <input id="addStepFirstForwardPropagation" class="addStepFirstForwardPropagation addStep btn btn-success" type="button" value="+"/>
+                <input id="minusStepFirstForwardPropagation" type="button" class="minusStepFirstForwardPropagation btn btn-danger" value="-">                                
+            </div>  
+            <table class="steps-table">
+                <tr>
+                    <th>X</th>
+                    <th>Прообразы X</th>                                   
+                    <th>input(X)</th>
+                    <th>output(X)</th>
+                </tr>                        
+                ${firstForwardPropagationTableData}                                        
+            </table> 
+            <div class="maxFlow">
+                <span>E<sup>1</sup>(w):</span>  
+                <input type='number' ${countInvalidNodesValue !== 0 || templateData.isFirstForwardPropagationDone === true ? "disabled" : ""} class='maxFlow-input' id="errorZero" value="${templateData.error}"'/>                       
+            </div>  
+            <div class="next-table-step-buttons">
+                <input id="cancelFirstPropagationTable" class="btn btn-primary" type="button" value="Назад"/>
+            </div>                                                                                                                                                                                                                                                   
         </div>`;
     }
 
@@ -319,6 +395,7 @@ function getHTML(templateData) {
                     <div id="graphContainer"></div>
                 </div>                               
                 <div class="steps">
+                    <p>k = 0</p>
                     <div class="steps-buttons">
                         <input id="addStep" class="addStep btn btn-success" type="button" value="+"/>
                         <input type="button" class="minusStep btn btn-danger" value="-">                                
@@ -339,7 +416,8 @@ function getHTML(templateData) {
                     <div class="next-table-step-buttons">
                         <input id="createBackpropagationTable" class="btn btn-info" type="button" value="Далее"/>
                     </div>
-                    ${backpropagationContainer}                                                                                                                                                                                                                      
+                    ${backpropagationContainer}     
+                    ${firstForwardPropagationContainer}                                                                                                                                                                                                                 
                 </div> 
                 <div class="lab-header">                                        
                     <!-- Button trigger modal -->                                        
@@ -404,6 +482,8 @@ function initState() {
         currentGrad: null,
         newNodesValue: [],
         initialNodesValue: [],
+        initNodesValue: [],
+        initEdgeWeight: [],
     };
 
     return {
@@ -497,6 +577,29 @@ function App() {
 
 function bindActionListeners(appInstance)
 {
+    if(document.getElementById("cancelFirstPropagationTable"))
+    {
+        document.getElementById("cancelFirstPropagationTable").addEventListener('click', () => {
+            // обновляем стейт приложение
+            const state = appInstance.state.updateState((state) => {
+                return  {
+                    ...state,
+                    isBackpropagationDone: false,
+                    isFirstForwardPropagationDone: false,
+                    firstPropagationNeuronsTableData: [],
+                    error: 0,
+                    currentEdge: [],
+                    selectedEdges: [],
+                    currentFirstPropagationStep: 0,
+                }
+            });
+
+            // перересовываем приложение
+            appInstance.subscriber.emit('render', state);
+        });
+    }
+
+
     if(document.getElementById("cancelBackpropagationTable"))
     {
         document.getElementById("cancelBackpropagationTable").addEventListener('click', () => {
@@ -524,8 +627,26 @@ function bindActionListeners(appInstance)
         document.getElementById("createFirstForwardPropagationTable").addEventListener('click', () => {
             // обновляем стейт приложение
             const state = appInstance.state.updateState((state) => {
+                let nodesValue = [...state.nodesValue];
+                let edgeWeight = [...state.edgeWeight];
+                let edgesTableData = [...state.edgesTableData];
+
+                //обновляем веса графа после МОР
+                nodesValue.fill(null);
+
+                for(let i = 0; i < edgesTableData.length; i++)
+                {
+                    let neuronFromIndex = edgesTableData[i].edge[0];
+                    let neuronToIndex = edgesTableData[i].edge[1];
+                    edgeWeight[neuronFromIndex][neuronToIndex] = edgesTableData[i].newW;
+                }
+
                 return  {
                     ...state,
+                    nodesValue,
+                    edgeWeight,
+                    selectedEdges: [],
+                    currentEdge: [],
                     isBackpropagationDone: true,
                 }
             });
@@ -535,10 +656,33 @@ function bindActionListeners(appInstance)
         });
     }
 
+    if(document.getElementById("errorZero"))
+    {
+        document.getElementById("errorZero").addEventListener('change', () => {
+            const state = appInstance.state.updateState((state) => {
+
+                if(isNaN(document.getElementById("errorZero").value))
+                {
+                    return {
+                        ...state,
+                        errorZero: 0,
+                    }
+                }
+
+                return {
+                    ...state,
+                    errorZero: Number(document.getElementById("errorZero").value),
+                }
+            });
+
+            appInstance.subscriber.emit('render', state);
+        });
+    }
+
     if(document.getElementById("createBackpropagationTable"))
     {
         document.getElementById("createBackpropagationTable").addEventListener('click', () => {
-            // обновляем стейт приложение         )
+            // обновляем стейт приложение
             let zeroForwardPropagationMSE = +document.getElementById("errorZero").value;
 
             const state = appInstance.state.updateState((state) => {
@@ -552,6 +696,126 @@ function bindActionListeners(appInstance)
                 }
 
                 return {
+                    ...state,
+                }
+            });
+
+            // перересовываем приложение
+            appInstance.subscriber.emit('render', state);
+        });
+    }
+
+    if(document.getElementById("addStepFirstForwardPropagation"))
+    {
+        document.getElementById("addStepFirstForwardPropagation").addEventListener('click', () => {
+            // обновляем стейт приложение
+            const state = appInstance.state.updateState((state) => {
+                let currentFirstPropagationStep = state.currentFirstPropagationStep;
+                let firstPropagationNeuronsTableData = state.firstPropagationNeuronsTableData.slice();
+                let nodesValue = state.nodesValue.slice();
+                let currentSelectedNodeIdNumber = state.currentSelectedNodeId.match(/(\d+)/)[0];
+                let currentNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+                let currentNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+
+                let prevSelectedNodeId = state.currentSelectedNodeId;
+                let prevNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+                let prevNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+                let prevNodeSection = state.currentNodeSection.slice();
+
+                if(currentNeuronInputSignalValue === "")
+                    currentNeuronInputSignalValue = 0;
+                if(currentNeuronOutputSignalValue === "")
+                    currentNeuronOutputSignalValue = 0;
+
+                if(firstPropagationNeuronsTableData.length < state.inputNeuronsAmount && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue))
+                {
+                    nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
+                    currentFirstPropagationStep++;
+                    firstPropagationNeuronsTableData.push({
+                        nodeId: state.currentSelectedNodeId,
+                        neuronInputSignalValue: currentNeuronInputSignalValue,
+                        neuronOutputSignalValue: currentNeuronOutputSignalValue,
+                        nodeSection: [],
+                    });
+                }
+                else if(state.currentSelectedNodeId.length > 0 && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue)
+                    && state.currentNodeSection.length > 0)
+                {
+                    nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
+                    currentFirstPropagationStep++;
+                    firstPropagationNeuronsTableData.push({
+                        nodeId: state.currentSelectedNodeId,
+                        neuronInputSignalValue: currentNeuronInputSignalValue,
+                        neuronOutputSignalValue: currentNeuronOutputSignalValue,
+                        nodeSection: state.currentNodeSection,
+                    });
+                }
+                else
+                {
+                    return {
+                        ...state,
+                    }
+                }
+
+                return  {
+                    ...state,
+                    currentFirstPropagationStep,
+                    firstPropagationNeuronsTableData,
+                    nodesValue,
+                    prevSelectedNodeId,
+                    prevNeuronInputSignalValue,
+                    prevNeuronOutputSignalValue,
+                    prevNodeSection,
+                    currentSelectedNodeId: "",
+                    currentNeuronInputSignalValue: "",
+                    currentNeuronOutputSignalValue: "",
+                    currentNodeSection: [],
+                    isSelectingNodesModeActivated: false,
+                }
+            });
+
+            // перересовываем приложение
+            appInstance.subscriber.emit('render', state);
+        });
+    }
+
+    if(document.getElementById("minusStepFirstForwardPropagation"))
+    {
+        document.getElementById("minusStepFirstForwardPropagation").addEventListener('click', () => {
+            // обновляем стейт приложение
+            const state = appInstance.state.updateState((state) => {
+                if(state.currentFirstPropagationStep > 0)
+                {
+                    let firstPropagationNeuronsTableData = state.firstPropagationNeuronsTableData.slice();
+                    let currentSelectedNodeIdNumber = Number(firstPropagationNeuronsTableData[firstPropagationNeuronsTableData.length - 1].nodeId.match(/(\d+)/)[0]);
+                    let currentNodeSection = firstPropagationNeuronsTableData[firstPropagationNeuronsTableData.length - 1].nodeSection;
+                    let currentNeuronInputSignalValue = firstPropagationNeuronsTableData[firstPropagationNeuronsTableData.length - 1].neuronInputSignalValue;
+                    let currentNeuronOutputSignalValue = firstPropagationNeuronsTableData[firstPropagationNeuronsTableData.length - 1].neuronOutputSignalValue;
+                    let currentSelectedNodeId = firstPropagationNeuronsTableData[firstPropagationNeuronsTableData.length - 1].nodeId;
+
+                    firstPropagationNeuronsTableData.pop();
+                    let nodesValueCopy = state.nodesValue.slice();
+                    nodesValueCopy[currentSelectedNodeIdNumber] = null;
+                    let prevNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+                    let prevNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+                    let prevNodeSection = state.currentNodeSection;
+
+                    return  {
+                        ...state,
+                        firstPropagationNeuronsTableData,
+                        prevNeuronInputSignalValue,
+                        prevNeuronOutputSignalValue,
+                        currentFirstPropagationStep: state.currentFirstPropagationStep - 1,
+                        currentSelectedNodeId,
+                        currentNeuronInputSignalValue,
+                        currentNeuronOutputSignalValue,
+                        currentNodeSection,
+                        isSelectingNodesModeActivated: false,
+                        nodesValue: nodesValueCopy,
+                    }
+                }
+
+                return  {
                     ...state,
                 }
             });
@@ -691,25 +955,28 @@ function bindActionListeners(appInstance)
         appInstance.subscriber.emit('render', state);
     });
 
-    document.getElementById("error").addEventListener('change', () => {
-        const state = appInstance.state.updateState((state) => {
+    if(document.getElementById("error"))
+    {
+        document.getElementById("error").addEventListener('change', () => {
+            const state = appInstance.state.updateState((state) => {
 
-            if(isNaN(document.getElementById("error").value))
-            {
+                if(isNaN(document.getElementById("error").value))
+                {
+                    return {
+                        ...state,
+                        error: 0,
+                    }
+                }
+
                 return {
                     ...state,
-                    error: 0,
+                    error: Number(document.getElementById("error").value),
                 }
-            }
+            });
 
-            return {
-                ...state,
-                error: Number(document.getElementById("error").value),
-            }
+            appInstance.subscriber.emit('render', state);
         });
-
-        appInstance.subscriber.emit('render', state);
-    });
+    }
 
     if(document.getElementById("addStepBackpropagation"))
     {
@@ -917,7 +1184,8 @@ function renderDag(state, appInstance) {
 
     window.graph.bind('clickNode', (res) => {
         const state = appInstance.state.updateState((state) => {
-            if(!state.isBackpropagationDone)
+            if(state.isZeroForwardPropagationDone === false && state.isBackpropagationDone === false ||
+            state.isFirstForwardPropagationDone === false && state.isBackpropagationDone === true)
             {
                 if(state.isSelectingNodesModeActivated)
                 {
@@ -974,7 +1242,7 @@ function renderDag(state, appInstance) {
             }
             else
             {
-                alert("Сначала найдите все новые веса рёбер");
+                // alert("Сначала найдите все новые веса рёбер");
 
                 return {
                     ...state,
@@ -1023,12 +1291,12 @@ function init_lab() {
                 const state = appInstance.state.updateState((state) => {
                     let graph = JSON.parse(document.getElementById("preGeneratedCode").value);
                     let nodes = graph.nodes;
-                    let initialNodesValue = graph.nodesValue.slice();
                     let yLevelRandomDisplacement = nodes.map(node => {
                         return 2 + Math.random() * 3; //смещение ноты по Y из-за того, что не видно значение ребра при отрисовке
                     });
 
                     let initNodesValue = [...graph.nodesValue];
+                    let initEdgeWeight = [...graph.edgeWeight];
                     initNodesValue.fill(null);
                     graph.nodesValue = [...initNodesValue];
 
@@ -1036,7 +1304,8 @@ function init_lab() {
                         ...state,
                         ...graph,
                         yLevelRandomDisplacement,
-                        initialNodesValue,
+                        initNodesValue,
+                        initEdgeWeight,
                     }
                 });
             }
