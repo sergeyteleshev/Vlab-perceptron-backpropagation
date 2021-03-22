@@ -199,7 +199,7 @@ function getHTML(templateData) {
         backPropagationData += `<tr>
             <td>
                 ${currentEdgeString}
-            </td>                    
+            </td>
             <td>
                 <input value="${templateData.currentWijZero}" id="wijZero" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
             </td>
@@ -208,7 +208,7 @@ function getHTML(templateData) {
             </td>
             <td>
                 <input value="${templateData.currentDelta}" id="delta" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
-            </td>           
+            </td>
             <td>
                 <input value="${templateData.currentGrad}" id="grad" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
             </td>
@@ -218,8 +218,7 @@ function getHTML(templateData) {
             <td>
                 <input value="${templateData.currentNewW}" id="newW" placeholder="Введите число" ${templateData.currentEdge.length !== 2 ? "disabled" : ""} class="tableInputData" type="number"/>
             </td>
-        </tr>
-    `;
+        </tr>`;
     }
 
     for(let i = 0; i < templateData.neuronsTableData.length; i++)
@@ -234,18 +233,18 @@ function getHTML(templateData) {
             </td>
             <td>
                 ${currentNodeSection}
-            </td>            
-            <td>
-                ${templateData.neuronsTableData[i].neuronInputSignalValue}            
             </td>
             <td>
-                ${templateData.neuronsTableData[i].neuronOutputSignalValue}            
+                ${templateData.neuronsTableData[i].neuronInputSignalValue}
+            </td>
+            <td>
+                ${templateData.neuronsTableData[i].neuronOutputSignalValue}
             </td>
         </tr>`;
     }
 
-    let currentNeuronInputSignalValue = `<input id="currentNeuronInputSignalValue" placeholder="Введите число" class="tableInputData" type="number" value="${templateData.currentNeuronInputSignalValue}"/>`
-    let currentNeuronOutputSignalValue = `<input id="currentNeuronOutputSignalValue" placeholder="Введите число" class="tableInputData" type="number" value="${templateData.currentNeuronOutputSignalValue}"/>`
+    let currentNeuronInputSignalValue = `<input id="currentNeuronInputSignalValue" placeholder="Введите число" class="tableInputData" type="number" value="${templateData.currentNeuronInputSignalValue}"/>`;
+    let currentNeuronOutputSignalValue = `<input id="currentNeuronOutputSignalValue" placeholder="Введите число" class="tableInputData" type="number" value="${templateData.currentNeuronOutputSignalValue}"/>`;
 
     if(templateData.currentStep !== templateData.inputNeuronsAmount + templateData.amountOfHiddenLayers * templateData.amountOfNodesInHiddenLayer + templateData.outputNeuronsAmount)
     {
@@ -264,12 +263,12 @@ function getHTML(templateData) {
             </td>
             <td>
                 ${currentNodeSection}
-            </td>          
-            <td>            
+            </td>
+            <td>
                 ${currentNeuronInputSignalValue}
             </td>
             <td>
-                ${currentNeuronOutputSignalValue}                
+                ${currentNeuronOutputSignalValue}
             </td>
         </tr>`;
     }
@@ -298,8 +297,8 @@ function getHTML(templateData) {
             </table>                 
             <div class="next-table-step-buttons">
                 <input id="createFirstForwardPropagationTable" class="btn btn-info" type="button" value="Далее"/>
-                <input id="cancelBackpropagationTable" class="btn btn-secondary" type="button" value="Назад"/>                        
-            </div>                           
+                <input id="cancelBackpropagationTable" class="btn btn-secondary" type="button" value="Назад"/>
+            </div>
         </div>`;
     }
 
@@ -321,12 +320,12 @@ function getHTML(templateData) {
                 </td>
                 <td>
                     ${currentNodeSection}
-                </td>            
-                <td>
-                    ${templateData.firstPropagationNeuronsTableData[i].neuronInputSignalValue}            
                 </td>
                 <td>
-                    ${templateData.firstPropagationNeuronsTableData[i].neuronOutputSignalValue}            
+                    ${templateData.firstPropagationNeuronsTableData[i].neuronInputSignalValue}
+                </td>
+                <td>
+                    ${templateData.firstPropagationNeuronsTableData[i].neuronOutputSignalValue}
                 </td>
             </tr>`;
         }
@@ -348,79 +347,79 @@ function getHTML(templateData) {
                 </td>
                 <td>
                     ${currentNodeSection}
-                </td>          
-                <td>            
+                </td>
+                <td>
                     ${currentNeuronInputSignalValue}
                 </td>
                 <td>
-                    ${currentNeuronOutputSignalValue}                
+                    ${currentNeuronOutputSignalValue}
                 </td>
             </tr>`;
         }
 
-        firstForwardPropagationContainer = `<div class="firstForwardContainer">            
+        firstForwardPropagationContainer = `<div class="firstForwardContainer">
             <p>k = 1</p>
             <div class="steps-buttons">
                 <input id="addStepFirstForwardPropagation" class="addStepFirstForwardPropagation addStep btn btn-success" type="button" value="+"/>
-                <input id="minusStepFirstForwardPropagation" type="button" class="minusStepFirstForwardPropagation btn btn-danger" value="-">                                
-            </div>  
+                <input id="minusStepFirstForwardPropagation" type="button" class="minusStepFirstForwardPropagation btn btn-danger" value="-">
+            </div>
             <table class="steps-table">
                 <tr>
                     <th>X</th>
-                    <th>Прообразы X</th>                                   
+                    <th>Прообразы X</th>
                     <th>input(X)</th>
                     <th>output(X)</th>
-                </tr>                        
-                ${firstForwardPropagationTableData}                                        
-            </table> 
+                </tr>
+                ${firstForwardPropagationTableData}
+            </table>
             <div class="maxFlow">
-                <span>E<sup>1</sup>(w):</span>  
-                <input type='number' ${countInvalidNodesValue !== 0 || templateData.isFirstForwardPropagationDone === true ? "disabled" : ""} class='maxFlow-input' id="errorZero" value="${templateData.error}"'/>                       
+                <span>E<sup>1</sup>(w):</span>
+                <input type='number' ${countInvalidNodesValue !== 0 || templateData.isFirstForwardPropagationDone === true ? "disabled" : ""} class='maxFlow-input' id="error" value="${templateData.error}"/>
             </div>  
             <div class="next-table-step-buttons">
                 <input id="cancelFirstPropagationTable" class="btn btn-primary" type="button" value="Назад"/>
-            </div>                                                                                                                                                                                                                                                   
+            </div>
         </div>`;
     }
 
     return `
         <div class="lab">
-            <div class="lab-table">                                
+            <div class="lab-table">
                 <div class="lab-header_text">Алгоритм обратного распространения ошибки в перцептроне</div>
                 <div class="header-buttons">
                     <button type="button" class="btn btn-info redrawGraph">Перерисовать граф</button>
                     <button type="button" class="btn btn-info showReference" data-toggle="modal" data-target="#exampleModalScrollable">Справка</button>
-                </div>            
-                <div class="graphComponent">                                                  
+                </div>
+                <div class="graphComponent">
                     <div id="graphContainer"></div>
-                </div>                               
+                </div>  
                 <div class="steps">
                     <p>k = 0</p>
                     <div class="steps-buttons">
                         <input id="addStep" class="addStep btn btn-success" type="button" value="+"/>
-                        <input type="button" class="minusStep btn btn-danger" value="-">                                
-                    </div>  
+                        <input type="button" class="minusStep btn btn-danger" value="-">
+                    </div>
                     <table class="steps-table">
                         <tr>
                             <th>X</th>
                             <th>Прообразы X</th>                                   
                             <th>input(X)</th>
                             <th>output(X)</th>
-                        </tr>                        
-                        ${tableData}                                        
-                    </table> 
+                        </tr>
+                        ${tableData}
+                    </table>
                     <div class="maxFlow">
-                        <span>E<sup>0</sup>(w):</span>  
-                        <input type='number' ${countInvalidNodesValue !== 0 || templateData.isZeroForwardPropagationDone === true ? "disabled" : ""} class='maxFlow-input' id="errorZero" value="${templateData.errorZero}"'/>                       
-                    </div>  
+                        <span>E<sup>0</sup>(w):</span>
+                        <input type='number' ${countInvalidNodesValue !== 0 || templateData.isZeroForwardPropagationDone === true ? "disabled" : ""} class='maxFlow-input' id="errorZero" value="${templateData.errorZero}"/>
+                    </div>
                     <div class="next-table-step-buttons">
                         <input id="createBackpropagationTable" class="btn btn-info" type="button" value="Далее"/>
                     </div>
-                    ${backpropagationContainer}     
-                    ${firstForwardPropagationContainer}                                                                                                                                                                                                                 
-                </div> 
-                <div class="lab-header">                                        
-                    <!-- Button trigger modal -->                                        
+                    ${backpropagationContainer}
+                    ${firstForwardPropagationContainer}
+                </div>
+                <div class="lab-header">
+                    <!-- Button trigger modal -->
                     <!-- Modal -->
                     <div class="modal fade" id="exampleModalScrollable" tabindex="-1" role="dialog" aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">
                       <div class="modal-dialog modal-dialog-scrollable" role="document">
@@ -433,16 +432,16 @@ function getHTML(templateData) {
                           </div>
                           <div class="modal-body">
                                 <p>1) Если граф отобразился так, что не видно значение рёбер или вершин графа, то нужно нажать <b>кнопку "перерисовать граф"</b>.</p>
-                                <p>2) При клике на ребро, оно становится красным и в таблице появляется <b>значение ребра для текущей итерации</b>.</p>                                        
+                                <p>2) При клике на ребро, оно становится красным и в таблице появляется <b>значение ребра для текущей итерации</b>.</p>
                                 <p>3) После того как все данные таблицы для текущей итерации заполнены, нужно нажать <b>кнопку "следующий шаг"</b>. Введённые числовые <b>значения автоматически округлятся до 2х знаков</b>.</p>
                                 <p>4) Если вы совершили ошибку, то вы можете отменить текущую итерацию нажав кнопку <b>"Предыдущий шаг"</b>.</p>
-                                <p>5) <b>Поле MSE</b> откроется сразу после того как будут рассчитаны все новые значения весов рёбер.</p>                                                                              
-                          </div>                                 
+                                <p>5) <b>Поле MSE</b> откроется сразу после того как будут рассчитаны все новые значения весов рёбер.</p>
+                          </div>
                         </div>
                       </div>
-                    </div>                           
-                </div>                       
-            </div>                                                                                     
+                    </div>
+                </div>
+            </div>
         </div>`;
 }
 
@@ -582,14 +581,35 @@ function bindActionListeners(appInstance)
         document.getElementById("cancelFirstPropagationTable").addEventListener('click', () => {
             // обновляем стейт приложение
             const state = appInstance.state.updateState((state) => {
-                return  {
+                let selectedEdges = [];
+                let edgesTableData = state.edgesTableData.slice();
+                let neuronsTableData = state.neuronsTableData.slice();
+                let nodesValue = state.initNodesValue.slice();
+                let edgeWeight = state.initEdgeWeight.slice();
+
+                for (let i = 0; i < edgesTableData.length; i++)
+                {
+                    selectedEdges.push("w" + edgesTableData[i].edge[0].toString() + edgesTableData[i].edge[1].toString());
+                }
+
+                for(let i = 0; i < neuronsTableData.length; i++)
+                {
+                    let currentNodeId = neuronsTableData[i].nodeId;
+                    let currentNodeIndex = +currentNodeId.replace("n", "");
+
+                    nodesValue[currentNodeIndex] = neuronsTableData[i].neuronOutputSignalValue;
+                }
+
+                return {
                     ...state,
+                    nodesValue,
+                    edgeWeight,
                     isBackpropagationDone: false,
                     isFirstForwardPropagationDone: false,
                     firstPropagationNeuronsTableData: [],
                     error: 0,
                     currentEdge: [],
-                    selectedEdges: [],
+                    selectedEdges,
                     currentFirstPropagationStep: 0,
                 }
             });
@@ -605,8 +625,22 @@ function bindActionListeners(appInstance)
         document.getElementById("cancelBackpropagationTable").addEventListener('click', () => {
             // обновляем стейт приложение
             const state = appInstance.state.updateState((state) => {
+                let neuronsTableData = state.neuronsTableData.slice();
+                let nodesValue = state.initNodesValue.slice();
+                let edgeWeight = state.initEdgeWeight.slice();
+
+                for(let i = 0; i < neuronsTableData.length; i++)
+                {
+                    let currentNodeId = neuronsTableData[i].nodeId;
+                    let currentNodeIndex = +currentNodeId.replace("n", "");
+
+                    nodesValue[currentNodeIndex] = neuronsTableData[i].neuronOutputSignalValue;
+                }
+
                 return  {
                     ...state,
+                    nodesValue,
+                    edgeWeight,
                     isBackpropagationDone: false,
                     isZeroForwardPropagationDone: false,
                     edgesTableData: [],
@@ -627,12 +661,9 @@ function bindActionListeners(appInstance)
         document.getElementById("createFirstForwardPropagationTable").addEventListener('click', () => {
             // обновляем стейт приложение
             const state = appInstance.state.updateState((state) => {
-                let nodesValue = [...state.nodesValue];
-                let edgeWeight = [...state.edgeWeight];
-                let edgesTableData = [...state.edgesTableData];
-
-                //обновляем веса графа после МОР
-                nodesValue.fill(null);
+                let nodesValue = state.initNodesValue.slice();
+                let edgeWeight = state.edgeWeight.slice();
+                let edgesTableData = state.edgesTableData.slice();
 
                 for(let i = 0; i < edgesTableData.length; i++)
                 {
@@ -1098,9 +1129,7 @@ function bindActionListeners(appInstance)
         });
     }
 
-
-
-    if(appInstance.state.getState().currentStep !== appInstance.state.getState().inputNeuronsAmount + appInstance.state.getState().amountOfNodesInHiddenLayer * appInstance.state.getState().amountOfHiddenLayers + appInstance.state.getState().outputNeuronsAmount)
+    if(document.getElementById("currentNeuronOutputSignalValue"))
     {
         document.getElementById("currentNeuronOutputSignalValue").addEventListener('change', () => {
             const state = appInstance.state.updateState((state) => {
@@ -1112,7 +1141,10 @@ function bindActionListeners(appInstance)
 
             appInstance.subscriber.emit('render', state);
         });
+    }
 
+    if(document.getElementById("currentNeuronInputSignalValue"))
+    {
         document.getElementById("currentNeuronInputSignalValue").addEventListener('change', () => {
             const state = appInstance.state.updateState((state) => {
                 return {
@@ -1171,7 +1203,7 @@ function renderDag(state, appInstance) {
             }
             else
             {
-                alert("Заполните сначала таблицу при k = 0!");
+                alert("На данном шаге изменение дуг не доступно!");
             }
 
             return {
@@ -1295,10 +1327,10 @@ function init_lab() {
                         return 2 + Math.random() * 3; //смещение ноты по Y из-за того, что не видно значение ребра при отрисовке
                     });
 
-                    let initNodesValue = [...graph.nodesValue];
-                    let initEdgeWeight = [...graph.edgeWeight];
+                    let initNodesValue = graph.nodesValue.slice();
+                    let initEdgeWeight = graph.edgeWeight.slice();
                     initNodesValue.fill(null);
-                    graph.nodesValue = [...initNodesValue];
+                    graph.nodesValue = initNodesValue.slice();
 
                     return {
                         ...state,

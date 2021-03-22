@@ -22,8 +22,16 @@ public class Consts
     public static final double dtWEpsilon = 0.05;
     public static final double gradEpsilon = 0.05;
     public static final double WEpsilon = 0.05;
-    public static final double errorPoints = 0.1;
-    public static final double tablePoints = 0.9;
+    public static final double neuronOutputSignalValueEpsilon = 0.05;
+    public static final double neuronInputSignalValueEpsilon = 0.05;
+
+    public static final double errorPoints = 0.05;
+    public static final double errorZeroForwardPropagationPoints = 0.05;
+    public static final double backpropagationTablePoints = 0.5;
+    public static final double zeroForwardPropagationPoints = 0.2;
+    public static final double firstForwardPropagationPoints = 0.2;
+
+
     public static final double classBorderline = 0.5;
     public static final String sigmoidFunction = "сигмовидная";
     public static final String linearFunction = "линейная";

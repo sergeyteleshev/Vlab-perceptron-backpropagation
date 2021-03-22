@@ -1,5 +1,6 @@
 package vlab.server_java.check;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import rlcp.check.ConditionForChecking;
 import rlcp.generate.GeneratingResult;
@@ -7,13 +8,11 @@ import rlcp.server.processor.check.PreCheckProcessor.PreCheckResult;
 import rlcp.server.processor.check.PreCheckResultAwareCheckProcessor;
 import vlab.server_java.Consts;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import java.math.BigDecimal;
 import java.util.*;
 
 import static vlab.server_java.Consts.*;
+import static vlab.server_java.Consts.neuronOutputSignalValueEpsilon;
 
 /**
  * Simple CheckProcessor implementation. Supposed to be changed as needed to provide
@@ -39,11 +38,14 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         JSONArray edgeWeight = jsonCode.getJSONArray("edgeWeight");
         JSONArray nodesValue = jsonCode.getJSONArray("nodesValue");
 
-        JSONArray serverAnswer = jsonObjectToJsonArray(generateRightAnswer(nodes, edges, nodesValue, edgeWeight));
-        JSONArray clientAnswer = jsonInstructions.getJSONArray("edgesTableData");
+        JSONArray serverAnswerBackpropagation = jsonObjectToJsonArray(generateRightAnswer(nodes, edges, nodesValue, edgeWeight));
+
+        JSONArray clientAnswerZeroForwardPropagation = jsonInstructions.getJSONArray("neuronsTableData");
+        JSONArray clientAnswerFirstForwardPropagation = jsonInstructions.getJSONArray("firstPropagationNeuronsTableData");
+        JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
 
         double[] signalOutputArray = new double[nodesValue.length()];
-        double[] serverAnswerNeuronOutputSignalValue = getDoublerrayByKey(serverAnswer, "neuronOutputSignalValue");
+        double[] serverAnswerNeuronOutputSignalValue = getDoublerrayByKey(serverAnswerBackpropagation, "neuronOutputSignalValue");
 
         for(int i = 0; i < signalOutputArray.length; i++)
         {
@@ -58,19 +60,19 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         }
 
         JSONObject backpropagationAnswer = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
-        JSONObject convertedClientAnswer = convertClientAnswer(clientAnswer);
+        JSONObject convertedClientAnswer = convertClientAnswer(clientAnswerBackpropagation);
 
         backpropagationAnswer.put("wijZero", edgeWeight);
         backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);
 
-        JSONObject compareResult = compareAnswers(backpropagationAnswer, convertedClientAnswer, Consts.tablePoints);
+        JSONObject compareResult = compareAnswers(backpropagationAnswer, convertedClientAnswer, Consts.backpropagationTablePoints);
         double comparePoints = compareResult.getDouble("points");
         String compareComment = compareResult.getString("comment");
         comment += compareComment;
         points += comparePoints;
 
         //Новое MSE после выполнения МОР
-        JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdges(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
+        JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
         double newError = countMSE(outputNeuronsValueAfterBackPropagation);
 
         if (newError >= error - mseEpsilon && newError <= error + mseEpsilon)
@@ -83,7 +85,263 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return new CheckingSingleConditionResult(BigDecimal.valueOf(points), comment);
     }
 
-    private static JSONArray getSignalWithNewEdges(JSONArray nodes, JSONArray edges, JSONArray edgesWeight, JSONArray nodesValue)
+    private static JSONArray sortJsonArrays(String jsonArrStr, String KEY_NAME)
+    {
+        JSONArray jsonArr = new JSONArray(jsonArrStr);
+        JSONArray sortedJsonArray = new JSONArray();
+
+        List<JSONObject> jsonValues = new ArrayList<JSONObject>();
+        for (int i = 0; i < jsonArr.length(); i++) {
+            jsonValues.add(jsonArr.getJSONObject(i));
+        }
+        Collections.sort( jsonValues, new Comparator<JSONObject>() {
+            //You can change "Name" with "ID" if you want to sort by ID
+            @Override
+            public int compare(JSONObject a, JSONObject b) {
+                String valA = new String();
+                String valB = new String();
+
+                try {
+                    valA = (String) a.get(KEY_NAME);
+                    valB = (String) b.get(KEY_NAME);
+                }
+                catch (JSONException e) {
+                    //do something
+                }
+
+                return valA.compareTo(valB);
+                //if you want to change the sort order, simply use the following:
+                //return -valA.compareTo(valB);
+            }
+        });
+
+        for (int i = 0; i < jsonArr.length(); i++) {
+            sortedJsonArray.put(jsonValues.get(i));
+        }
+
+        return sortedJsonArray;
+    }
+
+    private static boolean compareArrays(JSONArray arr1, JSONArray arr2) {
+        Object[] normalArr1 = new Object[arr1.length()];
+        Object[] normalArr2 = new Object[arr2.length()];
+
+        for(int i = 0; i < arr1.length(); i++)
+        {
+            normalArr1[i] = arr1.get(i);
+        }
+
+        for(int i = 0; i < arr2.length(); i++)
+        {
+            normalArr2[i] = arr2.get(i);
+        }
+
+        Arrays.sort(normalArr1);
+        Arrays.sort(normalArr2);
+        return Arrays.equals(normalArr1, normalArr2);
+    }
+
+    private static JSONObject compareAnswersForwardPropagation(JSONArray serverAnswer, JSONArray clientAnswer, double pointPercent)
+    {
+        double pointDelta = pointPercent / serverAnswer.length();
+        double points = 0;
+        JSONObject result = new JSONObject();
+        StringBuilder comment = new StringBuilder();
+
+        JSONArray sortedServerAnswer = sortJsonArrays(serverAnswer.toString(), "nodeId");
+        JSONArray sortedClientAnswer = sortJsonArrays(clientAnswer.toString(), "nodeId");
+
+        for(int i = 0; i < sortedClientAnswer.length(); i++)
+        {
+            boolean isNeuronInputSignalValueCorrect = false;
+            boolean isNeuronOutputSignalValueCorrect = false;
+            boolean isNeuronNodeSectionCorrect = false;
+
+            //равны входные значения сигнала на конкретный нейрон в рамках окрестности
+            if(sortedClientAnswer.getJSONObject(i).getDouble("neuronInputSignalValue") >= sortedServerAnswer.getJSONObject(i).getDouble("neuronInputSignalValue") - neuronInputSignalValueEpsilon
+                    &&
+                    sortedClientAnswer.getJSONObject(i).getDouble("neuronInputSignalValue") <= sortedServerAnswer.getJSONObject(i).getDouble("neuronInputSignalValue") + neuronInputSignalValueEpsilon
+            )
+            {
+                isNeuronInputSignalValueCorrect = true;
+            }
+            else
+            {
+                comment.append("Неверное значение входного сигнала нейрона ").append(sortedClientAnswer.getJSONObject(i).getString("nodeId")).append(". ");
+            }
+
+            //равны выходные значения сигнала на конкретный нейрон в рамках окрестности
+            if(sortedClientAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue") >=
+                    sortedServerAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue") - neuronOutputSignalValueEpsilon
+                    &&
+                    sortedClientAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue") <= sortedServerAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue") + neuronOutputSignalValueEpsilon
+            )
+            {
+                isNeuronOutputSignalValueCorrect = true;
+            }
+            else
+            {
+                comment.append("Неверное значение выходного сигнала нейрона ").append(sortedClientAnswer.getJSONObject(i).getString("nodeId")).append(". ");
+            }
+
+            //если правильно в графе выделил нейроны, из которых сигнал течёт в текущий нейрон по таблице
+            if(compareArrays(sortedClientAnswer.getJSONObject(i).getJSONArray("nodeSection"), sortedServerAnswer.getJSONObject(i).getJSONArray("nodeSection")))
+            {
+                isNeuronNodeSectionCorrect = true;
+            }
+            else
+            {
+                comment.append("Неверно выделены нейроны из которых течёт сигнал в нейрон ").append(sortedClientAnswer.getJSONObject(i).getString("nodeId")).append(". ");
+            }
+
+            if(isNeuronInputSignalValueCorrect)
+                points += pointDelta / 3;
+
+            if(isNeuronOutputSignalValueCorrect)
+                points += pointDelta / 3;
+
+            if(isNeuronNodeSectionCorrect)
+                points += pointDelta / 3;
+        }
+
+        int rowsDiff = serverAnswer.length() - clientAnswer.length();
+        if(rowsDiff > 0)
+        {
+            comment.append("В таблице не хватает ").append(String.valueOf(rowsDiff)).append(" строк. ");
+        }
+
+        result.put("points", points);
+        result.put("comment", comment.toString());
+
+        return result;
+    }
+
+    public static double[] getInputSignalWithNewEdges(int[] nodes, int[][] edges, double[][] edgesWeight, double[] nodesValue, String activationFunction)
+    {
+        double[] currentNodesValue = new double[nodesValue.length];
+        double[] currentInputSignalValues = new double[nodesValue.length];
+
+        for(int i = 0; i < inputNeuronsAmount; i++)
+        {
+            currentNodesValue[i] = nodesValue[i];
+            currentInputSignalValues[i] = nodesValue[i];
+        }
+
+        for(int i = Consts.inputNeuronsAmount; i < nodes.length; i++)
+        {
+            double nodeInputSignal = 0;
+            double nodeOutputSignal = 0;
+
+            for(int j = 0; j < i; j++)
+            {
+                if(edges[j][i] == 1)
+                {
+                    nodeInputSignal += currentNodesValue[j] * edgesWeight[j][i];
+                }
+            }
+
+            nodeInputSignal = roundDoubleToNDecimals(nodeInputSignal, roundNodesValueSign);
+            currentInputSignalValues[i] = nodeInputSignal;
+
+            switch (activationFunction) {
+                case sigmoidFunction:
+                    nodeOutputSignal = sigmoid(nodeInputSignal);
+                    break;
+                case linearFunction:
+                    nodeOutputSignal = linear(nodeInputSignal);
+                    break;
+                case tgFunction:
+                    nodeOutputSignal = tg(nodeInputSignal);
+                    break;
+            }
+
+            nodeOutputSignal = roundDoubleToNDecimals(nodeOutputSignal, roundNodesValueSign);
+
+            currentNodesValue[i] = nodeOutputSignal;
+        }
+
+        return currentInputSignalValues;
+    }
+
+    public static double[] getSignalWithNewEdges(int[] nodes, int[][] edges, double[][] edgesWeight, double[] nodesValue, String activationFunction)
+    {
+        double[] currentNodesValue = new double[nodesValue.length];
+        for(int i = 0; i < inputNeuronsAmount; i++)
+        {
+            currentNodesValue[i] = nodesValue[i];
+        }
+
+        for(int i = Consts.inputNeuronsAmount; i < nodes.length; i++)
+        {
+            double nodeInputSignal = 0;
+            double nodeOutputSignal = 0;
+
+            for(int j = 0; j < i; j++)
+            {
+                if(edges[j][i] == 1)
+                {
+                    nodeInputSignal += currentNodesValue[j] * edgesWeight[j][i];
+                }
+            }
+
+            nodeInputSignal = roundDoubleToNDecimals(nodeInputSignal, roundNodesValueSign);
+
+            switch (activationFunction) {
+                case sigmoidFunction:
+                    nodeOutputSignal = sigmoid(nodeInputSignal);
+                    break;
+                case linearFunction:
+                    nodeOutputSignal = linear(nodeInputSignal);
+                    break;
+                case tgFunction:
+                    nodeOutputSignal = tg(nodeInputSignal);
+                    break;
+            }
+
+            nodeOutputSignal = roundDoubleToNDecimals(nodeOutputSignal, roundNodesValueSign);
+
+            currentNodesValue[i] = nodeOutputSignal;
+        }
+
+        return currentNodesValue;
+    }
+
+    public JSONObject generateRightAnswerForwardPropagation(JSONArray nodes, JSONArray edges, JSONArray nodesValue, JSONArray edgeWeight, String activationFunction)
+    {
+        JSONArray jsonNodeId = new JSONArray();
+        JSONArray jsonNodeSection = new JSONArray();
+        JSONObject serverAnswer = new JSONObject();
+
+        double[] newNodesValues = getSignalWithNewEdges(jsonArrayToInt(nodes), twoDimensionalJsonArrayToInt(edges), twoDimensionalJsonArrayToDouble(edgeWeight), jsonArrayToDouble(nodesValue), activationFunction);
+        double[] inputSignals = getInputSignalWithNewEdges(jsonArrayToInt(nodes), twoDimensionalJsonArrayToInt(edges), twoDimensionalJsonArrayToDouble(edgeWeight), jsonArrayToDouble(nodesValue), activationFunction);
+
+        //нашли значение всех выходных сигналов нейронов
+        for(int i = 0; i < nodes.length(); i++)
+        {
+            String nodeId = "n" + Integer.toString(i);
+            JSONArray nodeSection = new JSONArray();
+
+            for(int j = 0; j < edges.getJSONArray(i).length(); j++)
+            {
+                if(edges.getJSONArray(j).getInt(i) == 1)
+                {
+                    nodeSection.put(nodeSection.length(), "n" + Integer.toString(j));
+                }
+            }
+
+            jsonNodeId.put(i, nodeId);
+            jsonNodeSection.put(i, nodeSection);
+        }
+
+        serverAnswer.put("neuronInputSignalValue", new JSONArray(inputSignals));
+        serverAnswer.put("neuronOutputSignalValue", new JSONArray(newNodesValues));
+        serverAnswer.put("nodeId", jsonNodeId);
+        serverAnswer.put("nodeSection", jsonNodeSection);
+
+        return serverAnswer;
+    }
+
+    private static JSONArray getSignalWithNewEdgesJsonArrays(JSONArray nodes, JSONArray edges, JSONArray edgesWeight, JSONArray nodesValue)
     {
         for(int i = Consts.inputNeuronsAmount; i < nodes.length(); i++)
         {

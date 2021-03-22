@@ -56,7 +56,7 @@
     margin-bottom: 20px;
 }
 
-#jsLab .minusStep
+#jsLab .minusStep, #jsLab .minusStepFirstForwardPropagation
 {
     margin-left: 10px;
 }
@@ -158,11 +158,11 @@
     display: inline-flex;
     justify-content: flex-start;
     width: 100%;
-    margin: 20px auto;
 }
 
 #jsLab .steps-table
 {
+    margin-top: 20px;
     width: 100%;
     height: 100%;
 }
@@ -353,4 +353,9 @@
 #jsLab .backpropagationContainer, #jsLab .firstForwardContainer
 {
     width: 100%;
+}
+
+#jsLab .firstForwardContainer p
+{
+    margin-top: 20px;
 }
