@@ -35,17 +35,17 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         JSONArray edges = jsonCode.getJSONArray("edges");
 
         double error = jsonInstructions.getDouble("error");
+        double clientErrorZero = jsonInstructions.getDouble("errorZero");
         JSONArray edgeWeight = jsonCode.getJSONArray("edgeWeight");
         JSONArray nodesValue = jsonCode.getJSONArray("nodesValue");
 
-        JSONArray serverAnswerBackpropagation = jsonObjectToJsonArray(generateRightAnswer(nodes, edges, nodesValue, edgeWeight));
+        JSONArray serverAnswerZeroForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, edgeWeight, sigmoidFunction));
 
         JSONArray clientAnswerZeroForwardPropagation = jsonInstructions.getJSONArray("neuronsTableData");
-        JSONArray clientAnswerFirstForwardPropagation = jsonInstructions.getJSONArray("firstPropagationNeuronsTableData");
-        JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
+        JSONObject zeroForwardPropagationResults = compareAnswersForwardPropagation(serverAnswerZeroForwardPropagation, clientAnswerZeroForwardPropagation, zeroForwardPropagationPoints);
 
         double[] signalOutputArray = new double[nodesValue.length()];
-        double[] serverAnswerNeuronOutputSignalValue = getDoublerrayByKey(serverAnswerBackpropagation, "neuronOutputSignalValue");
+        double[] serverAnswerZeroForwardPropagationNeuronOutputSignalValue = getDoublerrayByKey(serverAnswerZeroForwardPropagation, "neuronOutputSignalValue");
 
         for(int i = 0; i < signalOutputArray.length; i++)
         {
@@ -55,21 +55,47 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                signalOutputArray[i] = serverAnswerNeuronOutputSignalValue[i - Consts.inputNeuronsAmount];
+                signalOutputArray[i] = serverAnswerZeroForwardPropagationNeuronOutputSignalValue[i - Consts.inputNeuronsAmount];
             }
         }
 
+        JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
         JSONObject backpropagationAnswer = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
-        JSONObject convertedClientAnswer = convertClientAnswer(clientAnswerBackpropagation);
+        JSONObject convertedBackpropagationClientAnswer = convertClientAnswer(clientAnswerBackpropagation);
 
         backpropagationAnswer.put("wijZero", edgeWeight);
         backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);
 
-        JSONObject compareResult = compareAnswers(backpropagationAnswer, convertedClientAnswer, Consts.backpropagationTablePoints);
-        double comparePoints = compareResult.getDouble("points");
-        String compareComment = compareResult.getString("comment");
-        comment += compareComment;
-        points += comparePoints;
+        JSONArray clientAnswerFirstForwardPropagation = jsonInstructions.getJSONArray("firstPropagationNeuronsTableData");
+        JSONArray serverAnswerFirstForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, new JSONArray(backpropagationAnswer.get("newW")), sigmoidFunction));
+
+        //проверка результатов
+        JSONObject zeroForwardPropagationCompareResult = compareAnswersForwardPropagation(serverAnswerZeroForwardPropagation, clientAnswerZeroForwardPropagation, zeroForwardPropagationPoints);
+        double zeroForwardComparePoints = zeroForwardPropagationCompareResult.getDouble("points");
+        String zeroForwardCompareComment = zeroForwardPropagationCompareResult.getString("comment");
+        points += zeroForwardComparePoints;
+        comment += zeroForwardCompareComment;
+
+        JSONObject backpropagationCompareResult = compareBackpropagationAnswers(backpropagationAnswer, convertedBackpropagationClientAnswer, Consts.backpropagationTablePoints);
+        double backpropagationComparePoints = backpropagationCompareResult.getDouble("points");
+        String backpropagationCompareComment = backpropagationCompareResult.getString("comment");
+        comment += backpropagationCompareComment;
+        points += backpropagationComparePoints;
+
+        JSONObject firstForwardPropagationCompareResult = compareAnswersForwardPropagation(serverAnswerFirstForwardPropagation, clientAnswerFirstForwardPropagation, firstForwardPropagationPoints);
+        double firstForwardComparePoints = firstForwardPropagationCompareResult.getDouble("points");
+        String firstForwardCompareComment = firstForwardPropagationCompareResult.getString("comment");
+        points += firstForwardComparePoints;
+        comment += firstForwardCompareComment;
+
+        //MSE до МОР
+        JSONArray outputNeuronsValueBeforeBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
+        double serverErrorZero = countMSE(outputNeuronsValueBeforeBackPropagation);
+
+        if (serverErrorZero >= clientErrorZero - mseEpsilon && serverErrorZero <= clientErrorZero + mseEpsilon)
+            points += Consts.errorPoints;
+        else
+            comment += "Неверно посчитанно MSE исходного графа. MSE = " + roundDoubleToNDecimals(serverErrorZero, 4) + ". ";
 
         //Новое MSE после выполнения МОР
         JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
@@ -78,7 +104,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         if (newError >= error - mseEpsilon && newError <= error + mseEpsilon)
             points += Consts.errorPoints;
         else
-            comment += "Неверно посчитанно новое MSE. MSE = " + newError;
+            comment += "Неверно посчитанно MSE после МОР. MSE = " + roundDoubleToNDecimals(newError, 4) + ". ";
 
         points = doubleToTwoDecimal(points);
 
@@ -456,7 +482,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return newArray;
     }
 
-    private static JSONObject compareAnswers(JSONObject serverAnswer, JSONObject clientAnswer, double pointPercent)
+    private static JSONObject compareBackpropagationAnswers(JSONObject serverAnswer, JSONObject clientAnswer, double pointPercent)
     {
         //todo сделать норм оценку
         int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
@@ -544,7 +570,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         catch (Exception e)
         {
             result.put("points", 0.0);
-            result.put("comment", "Вы не заполнили таблицу. ");
+            result.put("comment", "Вы не заполнили таблицу МОР. ");
         }
 
         return result;

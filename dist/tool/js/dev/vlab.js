@@ -482,7 +482,7 @@ function initState() {
         newNodesValue: [],
         initialNodesValue: [],
         initNodesValue: [],
-        initEdgeWeight: [],
+        initEdgeWeight: "",
     };
 
     return {
@@ -585,7 +585,7 @@ function bindActionListeners(appInstance)
                 let edgesTableData = state.edgesTableData.slice();
                 let neuronsTableData = state.neuronsTableData.slice();
                 let nodesValue = state.initNodesValue.slice();
-                let edgeWeight = state.initEdgeWeight.slice();
+                let edgeWeight = [...JSON.parse(state.initEdgeWeight)];
 
                 for (let i = 0; i < edgesTableData.length; i++)
                 {
@@ -603,7 +603,6 @@ function bindActionListeners(appInstance)
                 return {
                     ...state,
                     nodesValue,
-                    edgeWeight,
                     isBackpropagationDone: false,
                     isFirstForwardPropagationDone: false,
                     firstPropagationNeuronsTableData: [],
@@ -611,6 +610,7 @@ function bindActionListeners(appInstance)
                     currentEdge: [],
                     selectedEdges,
                     currentFirstPropagationStep: 0,
+                    edgeWeight,
                 }
             });
 
@@ -627,7 +627,6 @@ function bindActionListeners(appInstance)
             const state = appInstance.state.updateState((state) => {
                 let neuronsTableData = state.neuronsTableData.slice();
                 let nodesValue = state.initNodesValue.slice();
-                let edgeWeight = state.initEdgeWeight.slice();
 
                 for(let i = 0; i < neuronsTableData.length; i++)
                 {
@@ -640,7 +639,6 @@ function bindActionListeners(appInstance)
                 return  {
                     ...state,
                     nodesValue,
-                    edgeWeight,
                     isBackpropagationDone: false,
                     isZeroForwardPropagationDone: false,
                     edgesTableData: [],
@@ -648,6 +646,7 @@ function bindActionListeners(appInstance)
                     currentEdge: [],
                     selectedEdges: [],
                     currentEdgeStep: 0,
+                    edgeWeight: [...JSON.parse(state.initEdgeWeight)],
                 }
             });
 
@@ -662,8 +661,8 @@ function bindActionListeners(appInstance)
             // обновляем стейт приложение
             const state = appInstance.state.updateState((state) => {
                 let nodesValue = state.initNodesValue.slice();
-                let edgeWeight = state.edgeWeight.slice();
                 let edgesTableData = state.edgesTableData.slice();
+                let edgeWeight = [...state.edgeWeight];
 
                 for(let i = 0; i < edgesTableData.length; i++)
                 {
@@ -675,7 +674,6 @@ function bindActionListeners(appInstance)
                 return  {
                     ...state,
                     nodesValue,
-                    edgeWeight,
                     selectedEdges: [],
                     currentEdge: [],
                     isBackpropagationDone: true,
@@ -1015,7 +1013,6 @@ function bindActionListeners(appInstance)
             const state = appInstance.state.updateState((state) => {
                 let currentEdgeStep = state.currentEdgeStep;
                 let edgesTableData = state.edgesTableData.slice();
-                let edgeWeight = state.edgeWeight.slice();
                 let nodesValue = state.nodesValue.slice();
 
                 let prevDelta = state.currentDelta;
@@ -1054,7 +1051,6 @@ function bindActionListeners(appInstance)
 
                 return  {
                     ...state,
-                    edgeWeight,
                     newNodesValue,
                     nodesValue,
                     isBackpropagationDone,
@@ -1328,7 +1324,8 @@ function init_lab() {
                     });
 
                     let initNodesValue = graph.nodesValue.slice();
-                    let initEdgeWeight = graph.edgeWeight.slice();
+                    //просто скопировать массив не получается. меняется этот массив когда делаем изменения edgeWeight массива. ссылки разные, копирую через спред блять. маме создателя JS привет сука
+                    let initEdgeWeight = JSON.stringify(graph.edgeWeight.slice());
                     initNodesValue.fill(null);
                     graph.nodesValue = initNodesValue.slice();
 
