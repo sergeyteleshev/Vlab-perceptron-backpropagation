@@ -66,7 +66,7 @@ function dataToSigma(state) {
         });
 
         for (let i = 0; i < edges.length; i++) {
-            let nodeValue = nodesValue[i] !== null ? `(I${i} = ${nodesValue[i]})` : "";
+            let nodeValue = nodesValue[i] !== null ? `(${nodesValue[i]})` : "";
             let nodeColor = "#000";
             let nodeId = "n" + i;
             let yLevel = 0;
@@ -100,7 +100,7 @@ function dataToSigma(state) {
 
             resultNodes[i] = {
                 id: nodeId,
-                label:  `${i.toString()} ${nodeValue}`,
+                label: `${i.toString()} ${nodeValue}`,
                 x: nodesLevel[i],
                 y: yLevel,
                 size: 4,
@@ -431,11 +431,17 @@ function getHTML(templateData) {
                             </button>
                           </div>
                           <div class="modal-body">
-                                <p>1) Если граф отобразился так, что не видно значение рёбер или вершин графа, то нужно нажать <b>кнопку "перерисовать граф"</b>.</p>
-                                <p>2) При клике на ребро, оно становится красным и в таблице появляется <b>значение ребра для текущей итерации</b>.</p>
-                                <p>3) После того как все данные таблицы для текущей итерации заполнены, нужно нажать <b>кнопку "следующий шаг"</b>. Введённые числовые <b>значения автоматически округлятся до 2х знаков</b>.</p>
-                                <p>4) Если вы совершили ошибку, то вы можете отменить текущую итерацию нажав кнопку <b>"Предыдущий шаг"</b>.</p>
-                                <p>5) <b>Поле MSE</b> откроется сразу после того как будут рассчитаны все новые значения весов рёбер.</p>
+                                <p>Если нейронная сеть на рисунке отображена плохо, то воспользуйтесь кнопкой <b>«Перерисовать»</b> до тех пор, пока рисунок и нанесенные числовые значения будут хорошо видны. </p>
+                                <p>У нейронов входного слоя <b>в скобках</b> указаны их входные сигналы. Для заполнения очередной строки таблицы <b>щелкните по выбранной вершине графа</b>. Вершина поменяет цвет на <b>красный</b> и будет занесена в таблицу. Если у нейрона есть прообразы, то <b>щелкните по каждой такой вершине</b> на рисунке: нейроны прообразов будут занесены в таблицу.</p>                                 
+                                <p>Определите входной и выходной сигнал нейрона, внесите в таблицу их значения после <b>округления до второго знака после запятой</b>. Для перехода к следующей строке таблицы нажмите <b>кнопку «+»</b>. Если очередная строка заполнена неверно, то используйте <b>кнопку «-»</b>, а после этого создайте эту строку в таблице с помощью кнопки «+» и заполните ее еще раз. После этого нейрон на рисунке поменяет цвет на зеленый.</p>                                 
+                                <p>Завершить формирование таблицы, когда на рисунке все нейроны будут раскрашены <b>зеленым цветом</b>.</p>                                 
+                                <p>Рассчитайте и введите значение оценки полученного решения MSE после округления до второго знака после запятой.</p>
+                                <p>Чтобы перейти к заполнению таблицы МОР необходимо нажать <b>«Далее»</b> под первой таблицей.</p>
+                                <p>Для заполнения таблицы МОР кликните на дугу, она выделится <b>красным цветом</b>. Заполните все необходимые данные и нажмите <b>кнопку «+»</b>. Для отмены текущей строки нажмите <b>кнопку «-»</b>. После успешного заполнения строки дуга станет <b>зелёной</b>.</p>
+                                <p>Чтобы перейти к заполнению таблицы распространения сигнала после МОР необходимо нажать <b>«Далее»</b> под таблицей МОР. Если нужно отменить все действия МОР, то нужно нажать <b>«Назад»</b>.</p>
+                                <p>Если необходимо полностью удалить последнюю таблицу распространения сигнала, то необходимо нажать <b>«Назад»</b> под этой таблицей.</p>
+                                <p>Для завершение ВЛР нажмите кнопку в правом нижнем углу стенда <b>«Ответ готов»</b></p>
+                                <p>Если при клике на текстовое поле для заполнения не появляется курсор ввола, то необходимо <b>скрыть окно ВЛР и развернуть</b> его снова.</p>
                           </div>
                         </div>
                       </div>
@@ -490,6 +496,7 @@ function initState() {
             return _state
         },
         updateState: function (callback) {
+            kill_graph();
             _state = callback(_state);
             return _state;
         }
@@ -561,7 +568,6 @@ function subscriber() {
 
         },
         emit: function (event, data = undefined) {
-            kill_graph();
             events[event].map(fn => data ? fn(data) : fn());
         }
     }
@@ -1155,17 +1161,20 @@ function bindActionListeners(appInstance)
 }
 
 function renderDag(state, appInstance) {
-    window.graph = new sigma({
-        renderers: [{
-            container: document.getElementById('graphContainer'),
-            type: "canvas",
-        }],
-        settings: {
-            defaultEdgeLabelSize: 15,
-            enableEdgeHovering: true,
-        },
-        clone: false,
-    });
+    if(!window.graph)
+    {
+        window.graph = new sigma({
+            renderers: [{
+                container: document.getElementById('graphContainer'),
+                type: "canvas",
+            }],
+            settings: {
+                defaultEdgeLabelSize: 15,
+                enableEdgeHovering: true,
+            },
+            clone: false,
+        });
+    }
 
     let graphData = dataToSigma(state);
     console.log('graphData', graphData);
@@ -1287,14 +1296,14 @@ function renderDag(state, appInstance) {
 
 function kill_graph()
 {
-    //цикл на всякий
     for(let i = 0; i < 1000; i++)
     {
-        if (window.graph) {
+        if (window.graph)
+        {
             // удаляется вообще весь граф: вершины и рёбра
-            // window.graph.clear();
             window.graph.kill(); // using sigma js kill function
         }
+
         $('.graphContainer').html('');  // cleanup DOM
         window.graph = null; // try to force garbage collection
     }
@@ -1352,7 +1361,6 @@ function init_lab() {
                 console.log('state', state);
                 console.log(appInstance);
                 renderTemplate(root, getHTML({...state}));
-                kill_graph();
                 renderDag(state, appInstance);
                 bindActionListeners(appInstance);
             };

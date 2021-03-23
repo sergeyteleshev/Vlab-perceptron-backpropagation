@@ -25,44 +25,50 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 
         JSONObject graph = new JSONObject();
 
-        int inputNeuronsAmount = Consts.inputNeuronsAmount;
-        int outputNeuronsAmount = Consts.outputNeuronsAmount;
-
-        int amountOfHiddenLayers = Consts.amountOfHiddenLayers;
-        int amountOfNodesInHiddenLayer = Consts.amountOfNodesInHiddenLayer;
-        int[] hiddenLayerNodesAmount = new int[amountOfHiddenLayers];
-        int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers; //всего вершин в графе
+//        int inputNeuronsAmount = Consts.inputNeuronsAmount;
+//        int outputNeuronsAmount = Consts.outputNeuronsAmount;
+//
+//        int amountOfHiddenLayers = Consts.amountOfHiddenLayers;
+//        int amountOfNodesInHiddenLayer = Consts.amountOfNodesInHiddenLayer;
+//        int[] hiddenLayerNodesAmount = new int[amountOfHiddenLayers];
+//        int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers; //всего вершин в графе
 
         double initialGraphMSE;
         int edgesAmount;
 
         JSONObject randomGraph = generateVariant(sigmoidFunction);
 
-        double[][] edgeWeight = (double[][]) randomGraph.get("edgeWeight");
-        int[][] edges = (int[][]) randomGraph.get("edges");
-        int[] nodes = (int[]) randomGraph.get("nodes");
-        double[] nodesValue = (double[]) randomGraph.get("nodesValue");
-        int[] nodesLevel = (int[]) randomGraph.get("nodesLevel");
+//        double[][] edgeWeight = (double[][]) randomGraph.get("edgeWeight");
+//        int[][] edges = (int[][]) randomGraph.get("edges");
+//        int[] nodes = (int[]) randomGraph.get("nodes");
+//        double[] nodesValue = (double[]) randomGraph.get("nodesValue");
+//        int[] nodesLevel = (int[]) randomGraph.get("nodesLevel");
 
-//        int[][] edges = {
-//                {0,0,1,1,0},
-//                {0,0,1,1,0},
-//                {0,0,0,0,1},
-//                {0,0,0,0,1},
-//                {0,0,0,0,0},
-//        };
-//        int[] nodes = {0,1,2,3,4};
-//        double[] nodesValue = {1,0,0.61,0.69,0.33};
-//        double[][] edgeWeight = {
-//                {0,0,0.45,0.78,0},
-//                {0,0,-0.12,0.13,0},
-//                {0,0,0,0,1.5},
-//                {0,0,0,0,-2.3},
-//                {0,0,0,0,0},
-//        };
-//        int[] nodesLevel = {1,1,2,2,3}
-//
-//        ;
+        int inputNeuronsAmount = 2;
+        int outputNeuronsAmount = 1;
+
+        int amountOfHiddenLayers = 1;
+        int amountOfNodesInHiddenLayer = 2;
+        int[] hiddenLayerNodesAmount = new int[amountOfHiddenLayers];
+
+        int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers; //всего вершин в графе
+        int[][] edges = {
+                {0,0,1,1,0},
+                {0,0,1,1,0},
+                {0,0,0,0,1},
+                {0,0,0,0,1},
+                {0,0,0,0,0},
+        };
+        int[] nodes = {0,1,2,3,4};
+        double[] nodesValue = {1,0,0.61,0.69,0.33};
+        double[][] edgeWeight = {
+                {0,0,0.45,0.78,0},
+                {0,0,-0.12,0.13,0},
+                {0,0,0,0,1.5},
+                {0,0,0,0,-2.3},
+                {0,0,0,0,0},
+        };
+        int[] nodesLevel = {1,1,2,2,3};
 
         edgesAmount = countEdges(edges);
 
@@ -94,7 +100,7 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 
         //раскомментить, чтобы увидеь ответ в описании лабы
 //        JSONObject backpropagationAnswer = backpropagation(nodesValue, edgeWeight);
-//        text = "Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + " " + backpropagationAnswerToReadble(backpropagationAnswer);
+//        text = new StringBuilder("Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + " " + backpropagationAnswerToReadble(backpropagationAnswer));
 
         return new GeneratingResult(text.toString().toString(), code, instructions);
     }
