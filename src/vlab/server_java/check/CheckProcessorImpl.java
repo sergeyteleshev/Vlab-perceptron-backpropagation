@@ -43,23 +43,8 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
         JSONArray clientAnswerZeroForwardPropagation = jsonInstructions.getJSONArray("neuronsTableData");
 
-        double[] signalOutputArray = new double[nodesValue.length()];
-        double[] serverAnswerZeroForwardPropagationNeuronOutputSignalValue = getDoublerrayByKey(serverAnswerZeroForwardPropagation, "neuronOutputSignalValue");
-
-        for(int i = 0; i < signalOutputArray.length; i++)
-        {
-            if(i < Consts.inputNeuronsAmount)
-            {
-                signalOutputArray[i] = nodesValue.getDouble(i);
-            }
-            else
-            {
-                signalOutputArray[i] = serverAnswerZeroForwardPropagationNeuronOutputSignalValue[i - Consts.inputNeuronsAmount];
-            }
-        }
-
         JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
-        JSONObject backpropagationAnswer = backpropagation(signalOutputArray, twoDimentionalJsonArrayToDouble(edgeWeight));
+        JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValue), twoDimensionalJsonArrayToDouble(edgeWeight));
         JSONObject convertedBackpropagationClientAnswer = convertClientAnswer(clientAnswerBackpropagation);
 
         backpropagationAnswer.put("wijZero", edgeWeight);
@@ -337,8 +322,8 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         JSONArray jsonNodeSection = new JSONArray();
         JSONObject serverAnswer = new JSONObject();
 
-        double[] newNodesValues = getSignalWithNewEdges(jsonArrayToInt(nodes), twoDimensionalJsonArrayToInt(edges), twoDimensionalJsonArrayToDouble(edgeWeight), jsonArrayToDouble(nodesValue), activationFunction);
-        double[] inputSignals = getInputSignalWithNewEdges(jsonArrayToInt(nodes), twoDimensionalJsonArrayToInt(edges), twoDimensionalJsonArrayToDouble(edgeWeight), jsonArrayToDouble(nodesValue), activationFunction);
+        double[] newNodesValues = getSignalWithNewEdges(jsonArrayToInt(nodes), twoDimensionalJsonArrayToInt(edges), Consts.twoDimensionalJsonArrayToDouble(edgeWeight), jsonArrayToDouble(nodesValue), activationFunction);
+        double[] inputSignals = getInputSignalWithNewEdges(jsonArrayToInt(nodes), twoDimensionalJsonArrayToInt(edges), Consts.twoDimensionalJsonArrayToDouble(edgeWeight), jsonArrayToDouble(nodesValue), activationFunction);
 
         //нашли значение всех выходных сигналов нейронов
         for(int i = 0; i < nodes.length(); i++)
@@ -499,7 +484,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         double[][] serverGrad = (double[][]) serverAnswer.get("grad");
         double[][] clientGrad = (double[][]) clientAnswer.get("grad");
 
-        double[][] serverWijZero = twoDimensionalJsonArrayToDouble(serverAnswer.getJSONArray("wijZero"));
+        double[][] serverWijZero = Consts.twoDimensionalJsonArrayToDouble(serverAnswer.getJSONArray("wijZero"));
         double[][] clientWijZero = (double[][]) clientAnswer.get("wijZero");
 
         double[][] serverDeltaWijZero = (double[][]) serverAnswer.get("deltaWijZero");
@@ -532,38 +517,56 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 if(isDeltaCorrect)
                 {
                     points += pointDelta / nodesAmount;
+                }
+                else
+                {
                     comment.append("Неверно рассчитана дельта нейрона ").append(Integer.toString(i)).append(": ").append("sys = ").append(serverDelta[i]).append("; user = ").append(clientDelta[i]).append(". ");
                 }
 
                 for (int j = 0; j < nodesAmount; j++)
                 {
-                    if((clientNewW[i][j] >= serverNewW[i][j] - WEpsilon && clientNewW[i][j] <= serverNewW[i][j] + WEpsilon))
+                    if((clientNewW[i][j] >= serverNewW[i][j] - WEpsilon && clientNewW[i][j] <= serverNewW[i][j] + WEpsilon) && serverNewW[i][j] != 0)
                     {
                         points += pointDelta / nonZeroNewWElements;
+                    }
+                    else
+                    {
                         comment.append("Неверно рассчитан вес дуги (").append(Integer.toString(i)).append(", ").append(Integer.toString(j)).append(") на первой итерации: ").append("sys = ").append(serverNewW[i][j]).append("; user = ").append(clientNewW[i][j]).append(". ");
                     }
 
                     if((clientDeltaWijZero[i][j] >= serverDeltaWijZero[i][j] - deltaWijZeroEpsilon && clientDeltaWijZero[i][j] <= serverDeltaWijZero[i][j] + deltaWijZeroEpsilon))
                     {
                         points += pointDelta / nodesAmount;
+                    }
+                    else
+                    {
                         comment.append("Неверно рассчитана дельта дуги (").append(Integer.toString(i)).append(", ").append(Integer.toString(j)).append(") на нулевой итерации: ").append(" sys = ").append(serverDeltaWijZero[i][j]).append("; user = ").append(clientDeltaWijZero[i][j]).append(". ");
                     }
 
-                    if((clientWijZero[i][j] >= serverWijZero[i][j] - wijZeroEpsilon && clientWijZero[i][j] <= serverWijZero[i][j] + wijZeroEpsilon))
+                    if((clientWijZero[i][j] >= serverWijZero[i][j] - wijZeroEpsilon && clientWijZero[i][j] <= serverWijZero[i][j] + wijZeroEpsilon) && serverWijZero[i][j] != 0)
                     {
                         points += pointDelta / nonZeroWijZeroElements;
+                    }
+                    else
+                    {
                         comment.append("Неверно рассчитан вес дуги (").append(Integer.toString(i)).append(", ").append(Integer.toString(j)).append(") на нулевой итерации: ").append(" sys = ").append(serverWijZero[i][j]).append("; user = ").append(clientWijZero[i][j]).append(". ");
                     }
 
-                    if((clientDeltaW[i][j] >= serverDeltaW[i][j] - dtWEpsilon && clientDeltaW[i][j] <= serverDeltaW[i][j] + dtWEpsilon))
+                    if((clientDeltaW[i][j] >= serverDeltaW[i][j] - dtWEpsilon && clientDeltaW[i][j] <= serverDeltaW[i][j] + dtWEpsilon) && serverDeltaW[i][j] != 0)
                     {
                         points += pointDelta / nonZeroDeltaWElements;
+                    }
+                    else
+                    {
                         comment.append("Неверно рассчитана дельта дуги (").append(Integer.toString(i)).append(", ").append(Integer.toString(j)).append(") на первой итерации: ").append(") sys = ").append(serverDeltaW[i][j]).append("; user = ").append(clientDeltaW[i][j]).append(". ");
                     }
 
-                    if((clientGrad[i][j] >= serverGrad[i][j] - gradEpsilon && clientGrad[i][j] <= serverGrad[i][j] + gradEpsilon))
+                    if((clientGrad[i][j] >= serverGrad[i][j] - gradEpsilon && clientGrad[i][j] <= serverGrad[i][j] + gradEpsilon) && serverGrad[i][j] != 0)
                     {
                         points += pointDelta / nonZeroGradElements;
+                    }
+                    else
+                    {
                         comment.append("Неверно рассчитано значение вектора антиградиента для дуги (").append(Integer.toString(i)).append(", ").append(Integer.toString(j)).append("): sys = ").append(serverGrad[i][j]).append("; user = ").append(clientGrad[i][j]).append(". ");
                     }
                 }
@@ -685,7 +688,19 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return serverAnswer;
     }
 
-    public static double[][] twoDimentionalJsonArrayToDouble(JSONArray arr)
+    public static double[] oneDimensionalJsonArrayToDouble(JSONArray arr)
+    {
+        double[] result = new double[arr.length()];
+
+        for(int i = 0; i < arr.length(); i++)
+        {
+            result[i] = arr.getDouble(i);
+        }
+
+        return result;
+    }
+
+    public static double[][] twoDimensionalJsonArrayToDouble(JSONArray arr)
     {
         double[][] result = new double[arr.length()][arr.getJSONArray(0).length()];
 
