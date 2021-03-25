@@ -860,6 +860,7 @@ function bindActionListeners(appInstance)
         });
     }
 
+    //todo чёто нажимается даже когда не заполнены поля
     document.getElementById("addStep").addEventListener('click', () => {
         // обновляем стейт приложение
         const state = appInstance.state.updateState((state) => {

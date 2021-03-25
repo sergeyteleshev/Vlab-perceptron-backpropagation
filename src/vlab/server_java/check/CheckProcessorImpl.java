@@ -378,9 +378,10 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
     private static JSONObject convertClientAnswer(JSONArray clientAnswer)
     {
+        int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
         JSONObject clientAnswerConverted = new JSONObject();
         double[][] newW = new double[clientAnswer.length()][clientAnswer.length()];
-        double[] delta = new double[clientAnswer.length()];
+        double[] delta = new double[nodesAmount];
         double[][] deltaW = new double[clientAnswer.length()][clientAnswer.length()];
         double[][] deltaWijZero = new double[clientAnswer.length()][clientAnswer.length()];
         double[][] wijZero = new double[clientAnswer.length()][clientAnswer.length()];
@@ -388,7 +389,6 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
         for (int i = 0; i < clientAnswer.length(); i++)
         {
-            delta[i] = 0;
             for (int j = 0; j < clientAnswer.length(); j++)
             {
                 newW[i][j] = 0;
@@ -405,7 +405,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             int nodeToIndex = clientAnswer.getJSONObject(i).getJSONArray("edge").getInt(1);
 
             newW[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("newW");
-            delta[i] = clientAnswer.getJSONObject(i).getDouble("delta");
+            delta[nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("delta");
             deltaW[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("deltaW");
             deltaWijZero[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("deltaWijZero");
             wijZero[nodeFromIndex][nodeToIndex] = clientAnswer.getJSONObject(i).getDouble("wijZero");
@@ -470,7 +470,6 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
     {
         //todo сделать норм оценку
         int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
-        double pointDelta = pointPercent / serverAnswer.length();
         double points = 0;
         JSONObject result = new JSONObject();
         StringBuilder comment = new StringBuilder();
@@ -496,8 +495,11 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         int nonZeroNewWElements = countNonZeroElementsInTwoDimensionalDoubleArray(serverNewW);
         int nonZeroGradElements = countNonZeroElementsInTwoDimensionalDoubleArray(serverGrad);
         int nonZeroWijZeroElements = countNonZeroElementsInTwoDimensionalDoubleArray(serverWijZero);
-//        int nonZeroDeltaWijZeroElements = countNonZeroElementsInTwoDimensionalDoubleArray(serverDeltaWijZero);
         int nonZeroDeltaWElements = countNonZeroElementsInTwoDimensionalDoubleArray(serverDeltaW);
+        int sumOfValuableElements = nonZeroNewWElements + nonZeroGradElements + nonZeroWijZeroElements + nonZeroDeltaWElements + serverDelta.length;
+
+        double deltaPointsDeltaWijZero = (0.1 * pointPercent) / (serverDeltaWijZero.length * serverDeltaWijZero[0].length);
+        double pointDelta = (0.9 * pointPercent) / sumOfValuableElements;
 
         try
         {
@@ -516,7 +518,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
                 if(isDeltaCorrect)
                 {
-                    points += pointDelta / nodesAmount;
+                    points += pointDelta;
                 }
                 else
                 {
@@ -527,16 +529,16 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 {
                     if((clientNewW[i][j] >= serverNewW[i][j] - WEpsilon && clientNewW[i][j] <= serverNewW[i][j] + WEpsilon) && serverNewW[i][j] != 0)
                     {
-                        points += pointDelta / nonZeroNewWElements;
+                        points += pointDelta;
                     }
-                    else
+                    else if(serverNewW[i][j] != 0)
                     {
                         comment.append("Неверно рассчитан вес дуги (").append(Integer.toString(i)).append(", ").append(Integer.toString(j)).append(") на первой итерации: ").append("sys = ").append(serverNewW[i][j]).append("; user = ").append(clientNewW[i][j]).append(". ");
                     }
 
-                    if((clientDeltaWijZero[i][j] >= serverDeltaWijZero[i][j] - deltaWijZeroEpsilon && clientDeltaWijZero[i][j] <= serverDeltaWijZero[i][j] + deltaWijZeroEpsilon))
+                    if(clientDeltaWijZero[i][j] == serverDeltaWijZero[i][j])
                     {
-                        points += pointDelta / nodesAmount;
+                        points += deltaPointsDeltaWijZero;
                     }
                     else
                     {
@@ -545,27 +547,27 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
                     if((clientWijZero[i][j] >= serverWijZero[i][j] - wijZeroEpsilon && clientWijZero[i][j] <= serverWijZero[i][j] + wijZeroEpsilon) && serverWijZero[i][j] != 0)
                     {
-                        points += pointDelta / nonZeroWijZeroElements;
+                        points += pointDelta;
                     }
-                    else
+                    else if(serverWijZero[i][j] != 0)
                     {
-                        comment.append("Неверно рассчитан вес дуги (").append(Integer.toString(i)).append(", ").append(Integer.toString(j)).append(") на нулевой итерации: ").append(" sys = ").append(serverWijZero[i][j]).append("; user = ").append(clientWijZero[i][j]).append(". ");
+                        comment.append("Неверно указан вес дуги (").append(Integer.toString(i)).append(", ").append(Integer.toString(j)).append(") на нулевой итерации: ").append(" sys = ").append(serverWijZero[i][j]).append("; user = ").append(clientWijZero[i][j]).append(". ");
                     }
 
                     if((clientDeltaW[i][j] >= serverDeltaW[i][j] - dtWEpsilon && clientDeltaW[i][j] <= serverDeltaW[i][j] + dtWEpsilon) && serverDeltaW[i][j] != 0)
                     {
-                        points += pointDelta / nonZeroDeltaWElements;
+                        points += pointDelta;
                     }
-                    else
+                    else if(serverDeltaW[i][j] != 0)
                     {
                         comment.append("Неверно рассчитана дельта дуги (").append(Integer.toString(i)).append(", ").append(Integer.toString(j)).append(") на первой итерации: ").append(") sys = ").append(serverDeltaW[i][j]).append("; user = ").append(clientDeltaW[i][j]).append(". ");
                     }
 
                     if((clientGrad[i][j] >= serverGrad[i][j] - gradEpsilon && clientGrad[i][j] <= serverGrad[i][j] + gradEpsilon) && serverGrad[i][j] != 0)
                     {
-                        points += pointDelta / nonZeroGradElements;
+                        points += pointDelta;
                     }
-                    else
+                    else if(serverGrad[i][j] != 0)
                     {
                         comment.append("Неверно рассчитано значение вектора антиградиента для дуги (").append(Integer.toString(i)).append(", ").append(Integer.toString(j)).append("): sys = ").append(serverGrad[i][j]).append("; user = ").append(clientGrad[i][j]).append(". ");
                     }
