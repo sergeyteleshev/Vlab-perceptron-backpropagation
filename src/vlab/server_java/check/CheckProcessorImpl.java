@@ -13,6 +13,7 @@ import java.util.*;
 
 import static vlab.server_java.Consts.*;
 import static vlab.server_java.Consts.neuronOutputSignalValueEpsilon;
+import static vlab.server_java.generate.GenerateProcessorImpl.countEdges;
 
 /**
  * Simple CheckProcessor implementation. Supposed to be changed as needed to provide
@@ -45,7 +46,6 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
         JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
         JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValue), twoDimensionalJsonArrayToDouble(edgeWeight));
-        JSONObject convertedBackpropagationClientAnswer = convertClientAnswer(clientAnswerBackpropagation);
 
         backpropagationAnswer.put("wijZero", edgeWeight);
         backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);
@@ -60,7 +60,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         points += zeroForwardComparePoints;
         comment += zeroForwardCompareComment;
 
-        JSONObject backpropagationCompareResult = compareBackpropagationAnswers(backpropagationAnswer, convertedBackpropagationClientAnswer, Consts.backpropagationTablePoints);
+        JSONObject backpropagationCompareResult = compareBackpropagationAnswers(backpropagationAnswer, clientAnswerBackpropagation, twoDimensionalJsonArrayToInt(edges), Consts.backpropagationTablePoints);
         double backpropagationComparePoints = backpropagationCompareResult.getDouble("points");
         String backpropagationCompareComment = backpropagationCompareResult.getString("comment");
         comment += backpropagationCompareComment;
@@ -380,16 +380,16 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
     {
         int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
         JSONObject clientAnswerConverted = new JSONObject();
-        double[][] newW = new double[clientAnswer.length()][clientAnswer.length()];
+        double[][] newW = new double[nodesAmount][nodesAmount];
         double[] delta = new double[nodesAmount];
-        double[][] deltaW = new double[clientAnswer.length()][clientAnswer.length()];
-        double[][] deltaWijZero = new double[clientAnswer.length()][clientAnswer.length()];
-        double[][] wijZero = new double[clientAnswer.length()][clientAnswer.length()];
-        double[][] grad = new double[clientAnswer.length()][clientAnswer.length()];
+        double[][] deltaW = new double[nodesAmount][nodesAmount];
+        double[][] deltaWijZero = new double[nodesAmount][nodesAmount];
+        double[][] wijZero = new double[nodesAmount][nodesAmount];
+        double[][] grad = new double[nodesAmount][nodesAmount];
 
-        for (int i = 0; i < clientAnswer.length(); i++)
+        for (int i = 0; i < nodesAmount; i++)
         {
-            for (int j = 0; j < clientAnswer.length(); j++)
+            for (int j = 0; j < nodesAmount; j++)
             {
                 newW[i][j] = 0;
                 deltaW[i][j] = 0;
@@ -457,16 +457,99 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
-    public static double[] addToBeginOfArray(double[] elements, int element)
+    private static JSONObject compareBackpropagationAnswers(JSONObject serverAnswer, JSONArray clientAnswer, int[][] edges,double pointPercent)
     {
-        double[] newArray = Arrays.copyOf(elements, elements.length + 1);
-        newArray[0] = element;
-        System.arraycopy(elements, 0, newArray, 1, elements.length);
+        int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfHiddenLayers * amountOfNodesInHiddenLayer;
+        double points = 0;
+        JSONObject result = new JSONObject();
+        StringBuilder comment = new StringBuilder();
+        int edgesAmount = countEdges(edges);
+        double pointDelta = pointPercent / edgesAmount / 6;
 
-        return newArray;
+        double[] serverDelta = (double[]) serverAnswer.get("delta");
+        double[][] serverNewW = (double[][]) serverAnswer.get("newW");
+        double[][] serverGrad = (double[][]) serverAnswer.get("grad");
+        double[][] serverWijZero = Consts.twoDimensionalJsonArrayToDouble(serverAnswer.getJSONArray("wijZero"));
+        double[][] serverDeltaWijZero = (double[][]) serverAnswer.get("deltaWijZero");
+        double[][] serverDeltaW = (double[][]) serverAnswer.get("deltaW");
+
+        for(int i = 0; i < clientAnswer.length(); i++)
+        {
+            int nodeFromIndex = clientAnswer.getJSONObject(i).getJSONArray("edge").getInt(0);
+            int nodeToIndex = clientAnswer.getJSONObject(i).getJSONArray("edge").getInt(1);
+
+            double clientDelta = clientAnswer.getJSONObject(i).getDouble("delta");
+            double clientNewW = clientAnswer.getJSONObject(i).getDouble("newW");
+            double clientDeltaWijZero = clientAnswer.getJSONObject(i).getDouble("deltaWijZero");
+            double clientWijZero = clientAnswer.getJSONObject(i).getDouble("wijZero");
+            double clientDeltaW = clientAnswer.getJSONObject(i).getDouble("deltaW");
+            double clientGrad = clientAnswer.getJSONObject(i).getDouble("grad");
+
+            if(serverDelta[nodeToIndex] == clientDelta)
+            {
+                points += pointDelta;
+            }
+            else
+            {
+                comment.append("Неверно рассчитана дельта нейрона ").append(Integer.toString(nodeToIndex)).append(": ").append("sys = ").append(serverDelta[nodeToIndex]).append("; user = ").append(clientDelta).append(". ");
+            }
+
+            if(clientNewW >= serverNewW[nodeFromIndex][nodeToIndex] - WEpsilon && clientNewW <= serverNewW[nodeFromIndex][nodeToIndex] + WEpsilon)
+            {
+                points += pointDelta;
+            }
+            else
+            {
+                comment.append("Неверно рассчитан вес дуги (").append(Integer.toString(nodeFromIndex)).append(", ").append(Integer.toString(nodeToIndex)).append(") на первой итерации: ").append("sys = ").append(serverNewW[nodeFromIndex][nodeToIndex]).append("; user = ").append(clientNewW).append(". ");
+            }
+
+            if(clientDeltaWijZero == serverDeltaWijZero[nodeFromIndex][nodeToIndex])
+            {
+                points += pointDelta;
+            }
+            else
+            {
+                comment.append("Неверно рассчитана дельта дуги (").append(Integer.toString(nodeFromIndex)).append(", ").append(Integer.toString(nodeToIndex)).append(") на нулевой итерации: ").append(" sys = ").append(serverDeltaWijZero[nodeFromIndex][nodeToIndex]).append("; user = ").append(clientDeltaWijZero).append(". ");
+            }
+
+            if(clientWijZero >= serverWijZero[nodeFromIndex][nodeToIndex] - wijZeroEpsilon && clientWijZero <= serverWijZero[nodeFromIndex][nodeToIndex] + wijZeroEpsilon)
+            {
+                points += pointDelta;
+            }
+            else
+            {
+                comment.append("Неверно указан вес дуги (").append(Integer.toString(nodeFromIndex)).append(", ").append(Integer.toString(nodeToIndex)).append(") на нулевой итерации: ").append(" sys = ").append(serverWijZero[nodeFromIndex][nodeToIndex]).append("; user = ").append(clientWijZero).append(". ");
+            }
+
+            if(clientDeltaW >= serverDeltaW[nodeFromIndex][nodeToIndex] - dtWEpsilon && clientDeltaW <= serverDeltaW[nodeFromIndex][nodeToIndex] + dtWEpsilon)
+            {
+                points += pointDelta;
+            }
+            else
+            {
+                comment.append("Неверно рассчитана дельта дуги (").append(Integer.toString(nodeFromIndex)).append(", ").append(Integer.toString(nodeToIndex)).append(") на первой итерации: ").append(") sys = ").append(serverDeltaW[nodeFromIndex][nodeToIndex]).append("; user = ").append(clientDeltaW).append(". ");
+            }
+
+            if(clientGrad >= serverGrad[nodeFromIndex][nodeToIndex] - gradEpsilon && clientGrad <= serverGrad[nodeFromIndex][nodeToIndex] + gradEpsilon)
+            {
+                points += pointDelta;
+            }
+            else
+            {
+                comment.append("Неверно рассчитано значение вектора антиградиента для дуги (").append(Integer.toString(nodeFromIndex)).append(", ").append(Integer.toString(nodeToIndex)).append("): sys = ").append(serverGrad[nodeFromIndex][nodeToIndex]).append("; user = ").append(clientGrad).append(". ");
+            }
+        }
+
+        if(clientAnswer.length() < edgesAmount)
+            comment.append("В таблице МОР не хватает ").append(edgesAmount - clientAnswer.length()).append(" строк. ");
+
+        result.put("points", points);
+        result.put("comment", comment.toString());
+
+        return result;
     }
 
-    private static JSONObject compareBackpropagationAnswers(JSONObject serverAnswer, JSONObject clientAnswer, double pointPercent)
+    private static JSONObject compareBackpropagationAnswersNotWorking(JSONObject serverAnswer, JSONObject clientAnswer, double pointPercent)
     {
         //todo сделать норм оценку
         int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
@@ -574,6 +657,9 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 }
             }
 
+            if(clientAnswer.length() < serverAnswer.length())
+                comment.append("В таблице МОР не хватает ").append(serverAnswer.length() - clientAnswer.length()).append(" строк");
+
             result.put("points", points);
             result.put("comment", comment.toString());
         }
@@ -603,91 +689,9 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return mse;
     }
 
-    public static double[] getDoublerrayByKey(JSONArray arr, String key)
-    {
-        double[] result = new double[arr.length()];
-
-        for(int i = 0; i < arr.length(); i++)
-        {
-
-            result[i] = arr.getJSONObject(i).getDouble(key);
-        }
-
-        return result;
-    }
-
     private static double getSigmoidValue(double x)
     {
         return (1 / (1 + Math.exp(-x)));
-    }
-
-    private double getHiperbolicTangensValue(double x)
-    {
-        return (2 / (1 + Math.exp(-2 * x)));
-    }
-
-    public static JSONObject generateRightAnswer(JSONArray nodes, JSONArray edges, JSONArray nodesValue, JSONArray edgeWeight)
-    {
-        JSONArray jsonNeuronInputSignalValue = new JSONArray();
-        JSONArray jsonNeuronOutputSignalValue = new JSONArray();
-        JSONArray jsonNodeId = new JSONArray();
-        JSONArray jsonNeuronInputSignalFormula = new JSONArray();
-        JSONArray jsonNodeSection = new JSONArray();
-        JSONObject serverAnswer = new JSONObject();
-
-        for(int i = Consts.inputNeuronsAmount; i < nodes.length(); i++)
-        {
-            double currentNodeValue = 0;
-            String nodeId = "n" + Integer.toString(i);
-            StringBuilder nodeFormula = new StringBuilder();
-            JSONArray nodeSection = new JSONArray();
-
-            for(int j = 0; j < edges.getJSONArray(i).length(); j++)
-            {
-                if(edges.getJSONArray(j).getInt(i) == 1)
-                {
-                    if(nodeFormula.length() == 0)
-                    {
-                        nodeFormula.append(Double.toString(nodesValue.getDouble(j))).append("*").append(Double.toString(edgeWeight.getJSONArray(j).getDouble(i)));
-                    }
-                    else
-                    {
-                        nodeFormula.append("+").append(Double.toString(nodesValue.getDouble(j))).append("*").append(Double.toString(edgeWeight.getJSONArray(j).getDouble(i)));
-                    }
-
-                    nodeSection.put(nodeSection.length(), "n" + Integer.toString(j));
-                    currentNodeValue += nodesValue.getDouble(j) * edgeWeight.getJSONArray(j).getDouble(i);
-                }
-            }
-
-            jsonNeuronInputSignalValue.put(i, doubleToTwoDecimal(currentNodeValue));
-
-            currentNodeValue = getSigmoidValue(currentNodeValue);
-            currentNodeValue = doubleToTwoDecimal(currentNodeValue);
-            nodesValue.put(i, currentNodeValue);
-
-            jsonNeuronOutputSignalValue.put(i, currentNodeValue);
-            jsonNodeId.put(i, nodeId);
-            jsonNeuronInputSignalFormula.put(i, nodeFormula.toString());
-            jsonNodeSection.put(i, nodeSection);
-        }
-
-        for(int i = 0; i < Consts.inputNeuronsAmount; i++)
-        {
-            jsonNeuronInputSignalValue.remove(0);
-            jsonNeuronOutputSignalValue.remove(0);
-            jsonNodeId.remove(0);
-            jsonNeuronInputSignalFormula.remove(0);
-            jsonNodeSection.remove(0);
-        }
-
-        serverAnswer.put("neuronInputSignalValue", jsonNeuronInputSignalValue);
-        serverAnswer.put("neuronOutputSignalValue", jsonNeuronOutputSignalValue);
-        serverAnswer.put("nodeId", jsonNodeId);
-        serverAnswer.put("neuronInputSignalFormula", jsonNeuronInputSignalFormula);
-        serverAnswer.put("nodeSection", jsonNodeSection);
-
-        return serverAnswer;
     }
 
     public static double[] oneDimensionalJsonArrayToDouble(JSONArray arr)

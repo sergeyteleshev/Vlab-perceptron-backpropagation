@@ -128,7 +128,7 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         return result.toString();
     }
 
-    private int countEdges(int[][] edges)
+    public static int countEdges(int[][] edges)
     {
         int edgesAmount = 0;
 

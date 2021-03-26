@@ -666,23 +666,33 @@ function bindActionListeners(appInstance)
         document.getElementById("createFirstForwardPropagationTable").addEventListener('click', () => {
             // обновляем стейт приложение
             const state = appInstance.state.updateState((state) => {
-                let nodesValue = state.initNodesValue.slice();
-                let edgesTableData = state.edgesTableData.slice();
-                let edgeWeight = [...state.edgeWeight];
-
-                for(let i = 0; i < edgesTableData.length; i++)
+                if(state.edgesTableData.length === state.edgesAmount)
                 {
-                    let neuronFromIndex = edgesTableData[i].edge[0];
-                    let neuronToIndex = edgesTableData[i].edge[1];
-                    edgeWeight[neuronFromIndex][neuronToIndex] = edgesTableData[i].newW;
-                }
+                    let nodesValue = state.initNodesValue.slice();
+                    let edgesTableData = state.edgesTableData.slice();
+                    let edgeWeight = [...state.edgeWeight];
 
-                return  {
-                    ...state,
-                    nodesValue,
-                    selectedEdges: [],
-                    currentEdge: [],
-                    isBackpropagationDone: true,
+                    for(let i = 0; i < edgesTableData.length; i++)
+                    {
+                        let neuronFromIndex = edgesTableData[i].edge[0];
+                        let neuronToIndex = edgesTableData[i].edge[1];
+                        edgeWeight[neuronFromIndex][neuronToIndex] = edgesTableData[i].newW;
+                    }
+
+                    return  {
+                        ...state,
+                        nodesValue,
+                        selectedEdges: [],
+                        currentEdge: [],
+                        isBackpropagationDone: true,
+                    }
+                }
+                else
+                {
+                    alert("Сначала заполните всю таблицу МОР!");
+                    return {
+                        ...state,
+                    }
                 }
             });
 
@@ -728,6 +738,10 @@ function bindActionListeners(appInstance)
                         errorZero: zeroForwardPropagationMSE,
                         isZeroForwardPropagationDone: true,
                     }
+                }
+                else
+                {
+                    alert("Сначала заполните всю таблицу и рассчитайте MSE!");
                 }
 
                 return {
@@ -860,70 +874,80 @@ function bindActionListeners(appInstance)
         });
     }
 
+    //todo чёто нажимается даже когда не заполнены поля
     document.getElementById("addStep").addEventListener('click', () => {
         // обновляем стейт приложение
         const state = appInstance.state.updateState((state) => {
-            let currentStep = state.currentStep;
-            let neuronsTableData = state.neuronsTableData.slice();
-            let nodesValue = state.nodesValue.slice();
-            let currentSelectedNodeIdNumber = state.currentSelectedNodeId.match(/(\d+)/)[0];
-            let currentNeuronInputSignalValue = state.currentNeuronInputSignalValue;
-            let currentNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
-
-            let prevSelectedNodeId = state.currentSelectedNodeId;
-            let prevNeuronInputSignalValue = state.currentNeuronInputSignalValue;
-            let prevNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
-            let prevNodeSection = state.currentNodeSection.slice();
-
-            if(currentNeuronInputSignalValue === "")
-                currentNeuronInputSignalValue = 0;
-            if(currentNeuronOutputSignalValue === "")
-                currentNeuronOutputSignalValue = 0;
-
-            if(neuronsTableData.length < state.inputNeuronsAmount && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue))
+            if(state.currentSelectedNodeId && state.currentNeuronInputSignalValue && state.currentNeuronOutputSignalValue)
             {
-                nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
-                currentStep++;
-                neuronsTableData.push({
-                    nodeId: state.currentSelectedNodeId,
-                    neuronInputSignalValue: currentNeuronInputSignalValue,
-                    neuronOutputSignalValue: currentNeuronOutputSignalValue,
-                    nodeSection: [],
-                });
+                let currentStep = state.currentStep;
+                let neuronsTableData = state.neuronsTableData.slice();
+                let nodesValue = state.nodesValue.slice();
+                let currentSelectedNodeIdNumber = state.currentSelectedNodeId.match(/(\d+)/)[0];
+                let currentNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+                let currentNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+
+                let prevSelectedNodeId = state.currentSelectedNodeId;
+                let prevNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+                let prevNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+                let prevNodeSection = state.currentNodeSection.slice();
+
+                if(currentNeuronInputSignalValue === "")
+                    currentNeuronInputSignalValue = 0;
+                if(currentNeuronOutputSignalValue === "")
+                    currentNeuronOutputSignalValue = 0;
+
+                if(neuronsTableData.length < state.inputNeuronsAmount && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue))
+                {
+                    nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
+                    currentStep++;
+                    neuronsTableData.push({
+                        nodeId: state.currentSelectedNodeId,
+                        neuronInputSignalValue: currentNeuronInputSignalValue,
+                        neuronOutputSignalValue: currentNeuronOutputSignalValue,
+                        nodeSection: [],
+                    });
+                }
+                else if(state.currentSelectedNodeId.length > 0 && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue)
+                    && state.currentNodeSection.length > 0)
+                {
+                    nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
+                    currentStep++;
+                    neuronsTableData.push({
+                        nodeId: state.currentSelectedNodeId,
+                        neuronInputSignalValue: currentNeuronInputSignalValue,
+                        neuronOutputSignalValue: currentNeuronOutputSignalValue,
+                        nodeSection: state.currentNodeSection,
+                    });
+                }
+                else
+                {
+                    return {
+                        ...state,
+                    }
+                }
+
+                return  {
+                    ...state,
+                    currentStep,
+                    neuronsTableData,
+                    nodesValue,
+                    prevSelectedNodeId,
+                    prevNeuronInputSignalValue,
+                    prevNeuronOutputSignalValue,
+                    prevNodeSection,
+                    currentSelectedNodeId: "",
+                    currentNeuronInputSignalValue: "",
+                    currentNeuronOutputSignalValue: "",
+                    currentNodeSection: [],
+                    isSelectingNodesModeActivated: false,
+                }
             }
-            else if(state.currentSelectedNodeId.length > 0 && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue)
-                && state.currentNodeSection.length > 0)
-            {
-                nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
-                currentStep++;
-                neuronsTableData.push({
-                    nodeId: state.currentSelectedNodeId,
-                    neuronInputSignalValue: currentNeuronInputSignalValue,
-                    neuronOutputSignalValue: currentNeuronOutputSignalValue,
-                    nodeSection: state.currentNodeSection,
-                });
-            }
-            else
-            {
+            else {
+                alert("Сначала заполните все поля в строке таблицы!")
                 return {
                     ...state,
                 }
-            }
-
-            return  {
-                ...state,
-                currentStep,
-                neuronsTableData,
-                nodesValue,
-                prevSelectedNodeId,
-                prevNeuronInputSignalValue,
-                prevNeuronOutputSignalValue,
-                prevNodeSection,
-                currentSelectedNodeId: "",
-                currentNeuronInputSignalValue: "",
-                currentNeuronOutputSignalValue: "",
-                currentNodeSection: [],
-                isSelectingNodesModeActivated: false,
             }
         });
 
