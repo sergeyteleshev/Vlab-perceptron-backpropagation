@@ -363,3 +363,30 @@
     text-align: left;
     margin-top: 20px;
 }
+
+#jsLab .initialEdgeWeightBg
+{
+    font-style: italic;
+    background-color: #C0C0C0;
+    width: 35px;
+    height: 35px;
+    text-align: center;
+    border: 1px solid #d7d7d7;
+    vertical-align: middle;
+}
+
+#jsLab .initEdgeWeightTable
+{
+    text-align: center;
+    border: none;
+}
+
+#jsLab .initEdgeWeightTable tr td
+{
+    border: 1px solid #d7d7d7;
+    padding: 5px;
+    width: 35px;
+    height: 35px;
+    text-align: center;
+    font-size: 14px;
+}

@@ -192,6 +192,44 @@ function getHTML(templateData) {
     let backPropagationData = "";
     let currentEdgeString = "";
 
+    let initEdgeWeightTable = "";
+
+
+    if(templateData.initEdgeWeight && templateData.initEdgeWeight.length)
+    {
+        let initEdgeWeight = [...JSON.parse(templateData.initEdgeWeight)];
+        initEdgeWeightTable += `<table class="initEdgeWeightTable">`;
+
+        initEdgeWeightTable += `<tr>`;
+
+        for(let i = 0; i < initEdgeWeight.length + 1; i++)
+        {
+            if(i === 0)
+                initEdgeWeightTable += `<td> </td>`;
+            else
+                initEdgeWeightTable += `<td class="initialEdgeWeightBg">${i}</td>`;
+        }
+
+        initEdgeWeightTable += `</tr>`;
+
+        for(let i = 0; i < initEdgeWeight.length; i++)
+        {
+            initEdgeWeightTable += `<tr>`;
+
+            for(let j = 0; j < initEdgeWeight[i].length; j++)
+            {
+                if(j === 0)
+                    initEdgeWeightTable += `<td class="initialEdgeWeightBg">${i + 1}</td>`;
+
+                initEdgeWeightTable += `<td>${initEdgeWeight[i][j]}</td>`;
+            }
+
+            initEdgeWeightTable += `</tr>`;
+        }
+
+        initEdgeWeightTable += `</table>`;
+    }
+
     let countInvalidNodesValue = 0;
     let countSelectedEdges = templateData.selectedEdges.length;
 
@@ -434,6 +472,7 @@ function getHTML(templateData) {
                 <div class="graphComponent">
                     <div id="graphContainer"></div>
                 </div>  
+                ${initEdgeWeightTable}
                 <div class="steps">
                     <p>k = 0</p>
                     <div class="steps-buttons">
@@ -539,9 +578,9 @@ function initState() {
             return _state
         },
         updateState: function (callback) {
-            kill_graph();
             _state = callback(_state);
             setCookie('state', JSON.stringify({..._state}));
+            kill_graph();
             return _state;
         }
     }
@@ -1363,15 +1402,14 @@ function renderDag(state, appInstance) {
 
 function kill_graph()
 {
-    for(let i = 0; i < 1000; i++)
+    if (window.graph)
     {
-        if (window.graph)
-        {
-            // удаляется вообще весь граф: вершины и рёбра
-            window.graph.kill(); // using sigma js kill function
-        }
+        // удаляется вообще весь граф: вершины и рёбра
+        // window.graph.graph.clear();
+        window.graph.kill(); // using sigma js kill function
 
-        $('.graphContainer').html('');  // cleanup DOM
+        // $('.graphContainer').html('');  // cleanup DOM
+        $("#graphContainer").empty();
         window.graph = null; // try to force garbage collection
     }
 }
