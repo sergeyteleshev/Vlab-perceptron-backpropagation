@@ -1,3 +1,44 @@
+function getCookie(name)
+{
+
+    let matches = document.cookie.match(new RegExp(
+        "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ))
+    return matches ? decodeURIComponent(matches[1]) : undefined
+}
+
+function setCookie(name, value, props)
+{
+
+    props = props || {}
+    let exp = props.expires
+
+    if (typeof exp == "number" && exp) {
+        let d = new Date()
+        d.setTime(d.getTime() + exp*1000)
+        exp = props.expires = d
+    }
+
+    if(exp && exp.toUTCString) { props.expires = exp.toUTCString() }
+
+    value = encodeURIComponent(value)
+    let updatedCookie = name + "=" + value
+
+    for(let propName in props){
+        updatedCookie += "; " + propName
+        let propValue = props[propName]
+
+        if(propValue !== true){ updatedCookie += "=" + propValue }
+    }
+
+    document.cookie = updatedCookie
+}
+
+function deleteCookie(name)
+{
+    setCookie(name, null, { expires: -1 })
+}
+
 function roundToTwoDecimals(num)
 {
     return Math.round(num * 100) / 100;
@@ -442,6 +483,8 @@ function getHTML(templateData) {
                                 <p>Если необходимо полностью удалить последнюю таблицу распространения сигнала, то необходимо нажать <b>«Назад»</b> под этой таблицей.</p>
                                 <p>Для завершение ВЛР нажмите кнопку в правом нижнем углу стенда <b>«Ответ готов»</b></p>
                                 <p>Если при клике на текстовое поле для заполнения не появляется курсор ввола, то необходимо <b>скрыть окно ВЛР и развернуть</b> его снова.</p>
+                                <p>Перед выполнением ВЛР рекомендуется <b>выключить на компьютере все программы и вкладки браузера</b>, которые потребляют много оперативной памяти</p>
+                                <p>Если лабораторная работа <b>зависла</b>, то нужно <b>закрыть полностью окно и зайти в неё снова</b>. Весь результат будет сохранён.</p>
                           </div>
                         </div>
                       </div>
@@ -498,6 +541,7 @@ function initState() {
         updateState: function (callback) {
             kill_graph();
             _state = callback(_state);
+            setCookie('state', JSON.stringify({..._state}));
             return _state;
         }
     }
@@ -874,11 +918,10 @@ function bindActionListeners(appInstance)
         });
     }
 
-    //todo чёто нажимается даже когда не заполнены поля
     document.getElementById("addStep").addEventListener('click', () => {
         // обновляем стейт приложение
         const state = appInstance.state.updateState((state) => {
-            if(state.currentSelectedNodeId && state.currentNeuronInputSignalValue && state.currentNeuronOutputSignalValue)
+            if(state.currentSelectedNodeId && !isNaN(state.currentNeuronInputSignalValue) && !isNaN(state.currentNeuronOutputSignalValue))
             {
                 let currentStep = state.currentStep;
                 let neuronsTableData = state.neuronsTableData.slice();
@@ -1362,13 +1405,38 @@ function init_lab() {
                     initNodesValue.fill(null);
                     graph.nodesValue = initNodesValue.slice();
 
-                    return {
+                    let initState = {
                         ...state,
                         ...graph,
                         yLevelRandomDisplacement,
                         initNodesValue,
                         initEdgeWeight,
                     }
+
+                    let cookieState = getCookie('state');
+                    console.log('cookieState', cookieState);
+
+                    if(cookieState && cookieState.length)
+                    {
+                        cookieState = JSON.parse(cookieState);
+                        let cookieEdgeWeight = JSON.stringify([...cookieState.edgeWeight]);
+
+                        console.log(cookieEdgeWeight);
+                        console.log(initEdgeWeight);
+
+                        if(cookieEdgeWeight !== initEdgeWeight)
+                        {
+                            console.log('cookeDeleted');
+                            deleteCookie('state');
+                        }
+                        else
+                        {
+                            console.log('got old cookie!');
+                            initState = {...JSON.parse(getCookie('state'))};
+                        }
+                    }
+
+                    return {...initState};
                 });
             }
 
@@ -1400,6 +1468,7 @@ function init_lab() {
             let result = {...appInstance.state.getState()};
             delete result.edgeWeight;
             console.log('getResults', result);
+            deleteCookie('state');
             return JSON.stringify(result);
         },
         calculateHandler: function (text, code) {

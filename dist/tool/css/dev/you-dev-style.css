@@ -52,6 +52,7 @@
 
 #jsLab .steps-buttons-backpropagation
 {
+    text-align: left;
     margin-top: 30px;
     margin-bottom: 20px;
 }
@@ -211,6 +212,7 @@
 
 #jsLab .maxFlow
 {
+    text-align: left;
     margin-top: 20px;
 }
 
@@ -346,6 +348,7 @@
 
 #jsLab .next-table-step-buttons
 {
+    text-align: left;
     margin-top: 20px;
     width: 100%;
 }
@@ -357,5 +360,6 @@
 
 #jsLab .firstForwardContainer p
 {
+    text-align: left;
     margin-top: 20px;
 }

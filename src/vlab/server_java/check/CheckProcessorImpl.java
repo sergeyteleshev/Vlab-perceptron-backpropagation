@@ -39,13 +39,14 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         double clientErrorZero = jsonInstructions.getDouble("errorZero");
         JSONArray edgeWeight = jsonCode.getJSONArray("edgeWeight");
         JSONArray nodesValue = jsonCode.getJSONArray("nodesValue");
+        double learningRate = jsonCode.getDouble("learningRate");
 
         JSONArray serverAnswerZeroForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, edgeWeight, sigmoidFunction));
 
         JSONArray clientAnswerZeroForwardPropagation = jsonInstructions.getJSONArray("neuronsTableData");
 
         JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
-        JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValue), twoDimensionalJsonArrayToDouble(edgeWeight));
+        JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValue), twoDimensionalJsonArrayToDouble(edgeWeight), learningRate);
 
         backpropagationAnswer.put("wijZero", edgeWeight);
         backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);
@@ -736,13 +737,12 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
-    public static JSONObject backpropagation(double[] neuronOutputSignalValue, double[][] edgesWeight)
+    public static JSONObject backpropagation(double[] neuronOutputSignalValue, double[][] edgesWeight, double learningRate)
     {
         JSONObject result = new JSONObject();
         double[] delta = new double[neuronOutputSignalValue.length];
         double[][] grad = new double[edgesWeight.length][edgesWeight.length];
         double[][] deltaW = new double[edgesWeight.length][edgesWeight.length];
-        double E = 0.7;
         double A = 0.3;
 
         for(int i = neuronOutputSignalValue.length - 1; i >= 0; i--)
@@ -759,7 +759,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 for(int j = 0; j < connectedNeurons.size(); j++)
                 {
                     grad[i][connectedNeurons.get(j)] = doubleToTwoDecimal(neuronOutputSignalValue[i] * delta[connectedNeurons.get(j)]);
-                    deltaW[i][connectedNeurons.get(j)] = doubleToTwoDecimal(E * grad[i][connectedNeurons.get(j)]);
+                    deltaW[i][connectedNeurons.get(j)] = doubleToTwoDecimal(learningRate * grad[i][connectedNeurons.get(j)]);
                     edgesWeight[i][connectedNeurons.get(j)] += doubleToTwoDecimal(deltaW[i][connectedNeurons.get(j)]);
                 }
             }
@@ -769,7 +769,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 {
                     delta[i] = doubleToTwoDecimal(((1 - neuronOutputSignalValue[i]) * neuronOutputSignalValue[i]) * edgesWeight[i][connectedNeurons.get(j)] * delta[connectedNeurons.get(j)]);
                     grad[i][connectedNeurons.get(j)] = doubleToTwoDecimal(neuronOutputSignalValue[i] * delta[connectedNeurons.get(j)]);
-                    deltaW[i][connectedNeurons.get(j)] = doubleToTwoDecimal(E * grad[i][connectedNeurons.get(j)]);
+                    deltaW[i][connectedNeurons.get(j)] = doubleToTwoDecimal(learningRate * grad[i][connectedNeurons.get(j)]);
                     edgesWeight[i][connectedNeurons.get(j)] += doubleToTwoDecimal(deltaW[i][connectedNeurons.get(j)]);
                 }
             }
