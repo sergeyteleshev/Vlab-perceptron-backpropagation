@@ -36,9 +36,6 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         int[] hiddenLayerNodesAmount = new int[amountOfHiddenLayers];
         int nodesAmount = inputNeuronsAmount + outputNeuronsAmount + amountOfNodesInHiddenLayer * amountOfHiddenLayers; //всего вершин в графе
 
-        double initialGraphMSE;
-        int edgesAmount;
-
         JSONObject randomGraph = generateVariant(sigmoidFunction);
 
         double[][] edgeWeight = (double[][]) randomGraph.get("edgeWeight");
@@ -74,7 +71,7 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 //        };
 //        int[] nodesLevel = {1,1,2,2,3};
 
-        edgesAmount = countEdges(edges);
+        int edgesAmount = countEdges(edges);
 
         graph.put("edgeWeight", edgeWeight);
         graph.put("nodes", nodes);
@@ -148,27 +145,24 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 
     public JSONObject generateVariant(String activationFunction)
     {
-        JSONObject randomGraph = new JSONObject();
-        int nodesAmountWithoutOutput = inputNeuronsAmount + amountOfHiddenLayers * amountOfNodesInHiddenLayer;
-        final int amountOfZeroClassOutputNeurons = generateRandomIntRange(1, outputNeuronsAmount);
-        int currentAmountOfZeroClassOutputNeurons = 0;
+        JSONObject randomGraph = generateRandomGraph();
+        double[][] edgeWeight = (double[][]) randomGraph.get("edgeWeight");
+        int[][] edges = (int[][]) randomGraph.get("edges");
+        int[] nodes = (int[]) randomGraph.get("nodes");
+        double[] nodesValue = (double[]) randomGraph.get("nodesValue");
+        double[] currentNodesValue = getSignalWithNewEdges(nodes, edges, edgeWeight, nodesValue, activationFunction);
 
-        while(currentAmountOfZeroClassOutputNeurons != amountOfZeroClassOutputNeurons)
+        double currentMSE = countMSE(new JSONArray(currentNodesValue));
+
+        while(currentMSE <= classBorderline)
         {
             randomGraph = generateRandomGraph();
-            currentAmountOfZeroClassOutputNeurons = 0;
-            double[][] edgeWeight = (double[][]) randomGraph.get("edgeWeight");
-            int[][] edges = (int[][]) randomGraph.get("edges");
-            int[] nodes = (int[]) randomGraph.get("nodes");
-            double[] nodesValue = (double[]) randomGraph.get("nodesValue");
-            double[] currentNodesValue;
-
+            edgeWeight = (double[][]) randomGraph.get("edgeWeight");
+            edges = (int[][]) randomGraph.get("edges");
+            nodes = (int[]) randomGraph.get("nodes");
+            nodesValue = (double[]) randomGraph.get("nodesValue");
             currentNodesValue = getSignalWithNewEdges(nodes, edges, edgeWeight, nodesValue, activationFunction);
-            for(int i = nodesAmountWithoutOutput; i < nodesValue.length; i++)
-            {
-                if(currentNodesValue[i] <= classBorderline)
-                    currentAmountOfZeroClassOutputNeurons++;
-            }
+            currentMSE = countMSE(new JSONArray(currentNodesValue));
         }
 
         return randomGraph;
@@ -275,7 +269,7 @@ public class GenerateProcessorImpl implements GenerateProcessor {
                 {
                     edges[i][j] = 1;
                     // от -1 до 1 с двумя знаками после запятой
-                    edgeWeight[i][j] = (double) roundDoubleToNDecimals(generateRandomDoubleRange(minEdgeValue, maxEdgeValue), roundEdgeWeightSign);
+                    edgeWeight[i][j] = roundDoubleToNDecimals(generateRandomDoubleRange(minEdgeValue, maxEdgeValue), roundEdgeWeightSign);
                 }
                 else
                 {

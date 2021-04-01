@@ -80,7 +80,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         if (serverErrorZero >= clientErrorZero - mseEpsilon && serverErrorZero <= clientErrorZero + mseEpsilon)
             points += Consts.errorPoints;
         else
-            comment += "Неверно посчитанно MSE исходного графа. MSE = " + roundDoubleToNDecimals(serverErrorZero, 4) + ". ";
+            comment += "Неверно посчитанно MSE исходного графа. MSE = " + roundDoubleToNDecimals(serverErrorZero, 7) + ". ";
 
         //Новое MSE после выполнения МОР
         JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
@@ -89,7 +89,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         if (newError >= error - mseEpsilon && newError <= error + mseEpsilon)
             points += Consts.errorPoints;
         else
-            comment += "Неверно посчитанно MSE после МОР. MSE = " + roundDoubleToNDecimals(newError, 4) + ". ";
+            comment += "Неверно посчитанно MSE после МОР. MSE = " + roundDoubleToNDecimals(newError, 7) + ". ";
 
         points = doubleToTwoDecimal(points);
 
