@@ -25,8 +25,27 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 
         JSONObject graph = new JSONObject();
 
-//        final double learningRate = Double.parseDouble(condition);
-        final double learningRate = 0.9;
+        double learningRate;
+        double alpha;
+
+        try
+        {
+            if(condition.length() > 0)
+            {
+                learningRate = Double.parseDouble(condition.split(",")[0]);
+                alpha = Double.parseDouble(condition.split(",")[1]);
+            }
+            else
+            {
+                learningRate = 0.9;
+                alpha = 0.1;
+            }
+        }
+        catch (Exception e)
+        {
+            learningRate = 0.9;
+            alpha = 0.1;
+        }
 
         int inputNeuronsAmount = Consts.inputNeuronsAmount;
         int outputNeuronsAmount = Consts.outputNeuronsAmount;
@@ -86,6 +105,7 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         graph.put("nodesAmount", nodesAmount);
         graph.put("edgesAmount", edgesAmount);
         graph.put("learningRate", learningRate);
+        graph.put("alpha", alpha);
 
         code = graph.toString();
 

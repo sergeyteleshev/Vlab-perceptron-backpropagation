@@ -40,6 +40,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         JSONArray edgeWeight = jsonCode.getJSONArray("edgeWeight");
         JSONArray nodesValue = jsonCode.getJSONArray("nodesValue");
         double learningRate = jsonCode.getDouble("learningRate");
+        double alpha = jsonCode.getDouble("alpha");
 
         JSONArray serverAnswerZeroForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, edgeWeight, sigmoidFunction));
 
@@ -47,7 +48,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
         JSONArray nodesValueFull = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
         JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
-        JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValueFull), twoDimensionalJsonArrayToDouble(edgeWeight), learningRate);
+        JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValueFull), twoDimensionalJsonArrayToDouble(edgeWeight), learningRate, alpha);
 
         backpropagationAnswer.put("wijZero", edgeWeight);
         backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);
@@ -738,13 +739,12 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
-    public static JSONObject backpropagation(double[] neuronOutputSignalValue, double[][] edgesWeight, double learningRate)
+    public static JSONObject backpropagation(double[] neuronOutputSignalValue, double[][] edgesWeight, double learningRate, double alpha)
     {
         JSONObject result = new JSONObject();
         double[] delta = new double[neuronOutputSignalValue.length];
         double[][] grad = new double[edgesWeight.length][edgesWeight.length];
         double[][] deltaW = new double[edgesWeight.length][edgesWeight.length];
-        double A = 0.3;
 
         for(int i = neuronOutputSignalValue.length - 1; i >= 0; i--)
         {

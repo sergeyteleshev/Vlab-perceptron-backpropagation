@@ -234,6 +234,9 @@
 #jsLab .graphComponent
 {
     width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #jsLab .controlPanel
@@ -387,6 +390,14 @@
 
 #jsLab #newGraph
 {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100%;
     height: 350px;
+}
+
+#jsLab #newGraph div
+{
+    padding-right: 100%;
 }
