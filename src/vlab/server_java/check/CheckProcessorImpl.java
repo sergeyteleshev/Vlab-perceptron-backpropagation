@@ -45,8 +45,9 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
         JSONArray clientAnswerZeroForwardPropagation = jsonInstructions.getJSONArray("neuronsTableData");
 
+        JSONArray nodesValueFull = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
         JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
-        JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValue), twoDimensionalJsonArrayToDouble(edgeWeight), learningRate);
+        JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValueFull), twoDimensionalJsonArrayToDouble(edgeWeight), learningRate);
 
         backpropagationAnswer.put("wijZero", edgeWeight);
         backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);

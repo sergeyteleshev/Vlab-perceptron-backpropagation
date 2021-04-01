@@ -38,8 +38,8 @@ public class Consts
     public static final String[] activationFunctions = {sigmoidFunction, linearFunction, tgFunction};
     public static final int roundEdgeWeightSign = 1;
     public static final int roundNodesValueSign = 2;
-    public static final double minEdgeValue = -3;
-    public static final double maxEdgeValue = 3;
+    public static final double minEdgeValue = -1;
+    public static final double maxEdgeValue = 1;
 
     public static double doubleToTwoDecimal(double number)
     {

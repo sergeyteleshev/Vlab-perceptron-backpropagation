@@ -26,7 +26,7 @@ public class GenerateProcessorImpl implements GenerateProcessor {
         JSONObject graph = new JSONObject();
 
 //        final double learningRate = Double.parseDouble(condition);
-        final double learningRate = 0.7;
+        final double learningRate = 0.9;
 
         int inputNeuronsAmount = Consts.inputNeuronsAmount;
         int outputNeuronsAmount = Consts.outputNeuronsAmount;
