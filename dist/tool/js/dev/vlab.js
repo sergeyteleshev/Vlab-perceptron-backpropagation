@@ -74,6 +74,11 @@ function sigmoid(x)
     return (1 / (1 + Math.exp(-x)));
 }
 
+function isNumber(value)
+{
+    return typeof value === 'number' && isFinite(value);
+}
+
 function getHTML(templateData) {
     let tableData = "";
     let backPropagationData = "";
@@ -127,7 +132,7 @@ function getHTML(templateData) {
         }
     }
 
-    if (templateData.currentEdge[0] && templateData.currentEdge[1])
+    if (isNumber(templateData.currentEdge[0]) && isNumber(templateData.currentEdge[1]))
         currentEdgeString = "(" + templateData.currentEdge[0].toString() + ", " + templateData.currentEdge[1].toString() + ")";
 
     if(templateData.edgesTableData)

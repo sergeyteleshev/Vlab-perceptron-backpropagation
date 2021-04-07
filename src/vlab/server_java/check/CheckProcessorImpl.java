@@ -9,6 +9,7 @@ import rlcp.server.processor.check.PreCheckResultAwareCheckProcessor;
 import vlab.server_java.Consts;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 import static vlab.server_java.Consts.*;
@@ -26,76 +27,100 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         //do check logic here
         double points = 0;
         String comment = "";
+        BigDecimal pointsToDe = new BigDecimal(0);
 
-        String code = generatingResult.getCode();
+        try
+        {
+            String code = generatingResult.getCode();
 
-        JSONObject jsonCode = new JSONObject(code);
-        JSONObject jsonInstructions = new JSONObject(instructions);
+            JSONObject jsonCode = new JSONObject(code);
+            JSONObject jsonInstructions = new JSONObject(instructions);
 
-        JSONArray nodes = jsonCode.getJSONArray("nodes");
-        JSONArray edges = jsonCode.getJSONArray("edges");
+            JSONArray nodes = jsonCode.getJSONArray("nodes");
+            JSONArray edges = jsonCode.getJSONArray("edges");
 
-        double error = jsonInstructions.getDouble("error");
-        double clientErrorZero = jsonInstructions.getDouble("errorZero");
-        JSONArray edgeWeight = jsonCode.getJSONArray("edgeWeight");
-        JSONArray nodesValue = jsonCode.getJSONArray("nodesValue");
-        double learningRate = jsonCode.getDouble("learningRate");
-        double alpha = jsonCode.getDouble("alpha");
+            double error = jsonInstructions.getDouble("error");
+            double clientErrorZero = jsonInstructions.getDouble("errorZero");
+            JSONArray edgeWeight = jsonCode.getJSONArray("edgeWeight");
+            JSONArray nodesValue = jsonCode.getJSONArray("nodesValue");
+            double learningRate = jsonCode.getDouble("learningRate");
+            double alpha = jsonCode.getDouble("alpha");
 
-        JSONArray serverAnswerZeroForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, edgeWeight, sigmoidFunction));
+            JSONArray serverAnswerZeroForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, edgeWeight, sigmoidFunction));
 
-        JSONArray clientAnswerZeroForwardPropagation = jsonInstructions.getJSONArray("neuronsTableData");
+            JSONArray clientAnswerZeroForwardPropagation = jsonInstructions.getJSONArray("neuronsTableData");
 
-        JSONArray nodesValueFull = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
-        JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
-        JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValueFull), twoDimensionalJsonArrayToDouble(edgeWeight), learningRate, alpha);
+            JSONArray nodesValueFull = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
+            JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
+            JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValueFull), twoDimensionalJsonArrayToDouble(edgeWeight), learningRate, alpha);
 
-        backpropagationAnswer.put("wijZero", edgeWeight);
-        backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);
+            backpropagationAnswer.put("wijZero", edgeWeight);
+            backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);
 
-        JSONArray clientAnswerFirstForwardPropagation = jsonInstructions.getJSONArray("firstPropagationNeuronsTableData");
-        JSONArray serverAnswerFirstForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, new JSONArray(backpropagationAnswer.get("newW")), sigmoidFunction));
+            JSONArray clientAnswerFirstForwardPropagation = jsonInstructions.getJSONArray("firstPropagationNeuronsTableData");
+            JSONArray serverAnswerFirstForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, new JSONArray(backpropagationAnswer.get("newW")), sigmoidFunction));
 
-        //проверка результатов
-        JSONObject zeroForwardPropagationCompareResult = compareAnswersForwardPropagation(serverAnswerZeroForwardPropagation, clientAnswerZeroForwardPropagation, zeroForwardPropagationPoints);
-        double zeroForwardComparePoints = zeroForwardPropagationCompareResult.getDouble("points");
-        String zeroForwardCompareComment = zeroForwardPropagationCompareResult.getString("comment");
-        points += zeroForwardComparePoints;
-        comment += zeroForwardCompareComment;
+            //проверка результатов
+            JSONObject zeroForwardPropagationCompareResult = compareAnswersForwardPropagation(serverAnswerZeroForwardPropagation, clientAnswerZeroForwardPropagation, zeroForwardPropagationPoints);
+            double zeroForwardComparePoints = zeroForwardPropagationCompareResult.getDouble("points");
+            String zeroForwardCompareComment = zeroForwardPropagationCompareResult.getString("comment");
+            points += zeroForwardComparePoints;
+            if(zeroForwardCompareComment.length() > 0)
+                comment += "ТАБЛИЦА СИГНАЛОВ НЕЙРОНОВ ДО МОР: ";
 
-        JSONObject backpropagationCompareResult = compareBackpropagationAnswers(backpropagationAnswer, clientAnswerBackpropagation, twoDimensionalJsonArrayToInt(edges), Consts.backpropagationTablePoints);
-        double backpropagationComparePoints = backpropagationCompareResult.getDouble("points");
-        String backpropagationCompareComment = backpropagationCompareResult.getString("comment");
-        comment += backpropagationCompareComment;
-        points += backpropagationComparePoints;
+            comment += zeroForwardCompareComment;
 
-        JSONObject firstForwardPropagationCompareResult = compareAnswersForwardPropagation(serverAnswerFirstForwardPropagation, clientAnswerFirstForwardPropagation, firstForwardPropagationPoints);
-        double firstForwardComparePoints = firstForwardPropagationCompareResult.getDouble("points");
-        String firstForwardCompareComment = firstForwardPropagationCompareResult.getString("comment");
-        points += firstForwardComparePoints;
-        comment += firstForwardCompareComment;
+            JSONObject backpropagationCompareResult = compareBackpropagationAnswers(backpropagationAnswer, clientAnswerBackpropagation, twoDimensionalJsonArrayToInt(edges), Consts.backpropagationTablePoints);
+            double backpropagationComparePoints = backpropagationCompareResult.getDouble("points");
+            String backpropagationCompareComment = backpropagationCompareResult.getString("comment");
 
-        //MSE до МОР
-        JSONArray outputNeuronsValueBeforeBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
-        double serverErrorZero = countMSE(outputNeuronsValueBeforeBackPropagation);
+            if(backpropagationCompareComment.length() > 0)
+                comment += "ТАБЛИЦА МОР: ";
 
-        if (serverErrorZero >= clientErrorZero - mseEpsilon && serverErrorZero <= clientErrorZero + mseEpsilon)
-            points += Consts.errorPoints;
-        else
-            comment += "Неверно посчитанно MSE исходного графа. MSE = " + roundDoubleToNDecimals(serverErrorZero, 7) + ". ";
+            comment += backpropagationCompareComment;
+            points += backpropagationComparePoints;
 
-        //Новое MSE после выполнения МОР
-        JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
-        double newError = countMSE(outputNeuronsValueAfterBackPropagation);
+            JSONObject firstForwardPropagationCompareResult = compareAnswersForwardPropagation(serverAnswerFirstForwardPropagation, clientAnswerFirstForwardPropagation, firstForwardPropagationPoints);
+            double firstForwardComparePoints = firstForwardPropagationCompareResult.getDouble("points");
+            String firstForwardCompareComment = firstForwardPropagationCompareResult.getString("comment");
 
-        if (newError >= error - mseEpsilon && newError <= error + mseEpsilon)
-            points += Consts.errorPoints;
-        else
-            comment += "Неверно посчитанно MSE после МОР. MSE = " + roundDoubleToNDecimals(newError, 7) + ". ";
+            if(firstForwardCompareComment.length() > 0)
+                comment += "ТАБЛИЦА СИГНАЛОВ НЕЙРОНОВ ПОСЛЕ МОР: ";
 
-        points = doubleToTwoDecimal(points);
+            points += firstForwardComparePoints;
+            comment += firstForwardCompareComment;
 
-        return new CheckingSingleConditionResult(BigDecimal.valueOf(points), comment);
+            //MSE до МОР
+            JSONArray outputNeuronsValueBeforeBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
+            double serverErrorZero = countMSE(outputNeuronsValueBeforeBackPropagation);
+
+            if (serverErrorZero >= clientErrorZero - mseEpsilon && serverErrorZero <= clientErrorZero + mseEpsilon)
+                points += Consts.errorPoints;
+            else
+                comment += "Неверно посчитанно E0(w): E0(w) = " + serverErrorZero + ". ";
+
+            //Новое MSE после выполнения МОР
+            JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
+            double newError = countMSE(outputNeuronsValueAfterBackPropagation);
+
+            if (newError >= error - mseEpsilon && newError <= error + mseEpsilon)
+                points += Consts.errorPoints;
+            else
+                comment += "Неверно посчитанно E1(w) после МОР. E1(w) = " + newError + ". ";
+
+            //на всякий проверка вдруг посчиталось баллов больше и поэтому крашится на самом de лаба
+            if (points > 1)
+                points = 1.0;
+
+            pointsToDe = new BigDecimal(points);
+            pointsToDe = pointsToDe.setScale(2, RoundingMode.HALF_DOWN);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return new CheckingSingleConditionResult(pointsToDe, comment);
     }
 
     private static JSONArray sortJsonArrays(String jsonArrStr, String KEY_NAME)
