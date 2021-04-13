@@ -83,9 +83,7 @@ function getHTML(templateData) {
     let tableData = "";
     let backPropagationData = "";
     let currentEdgeString = "";
-
     let initEdgeWeightTable = "";
-
 
     if(templateData.initEdgeWeight && templateData.initEdgeWeight.length)
     {
@@ -353,6 +351,30 @@ function getHTML(templateData) {
         </div>`;
     }
 
+    let zeroForwardPropagationContainer = `<div class="zeroForwardPropagationContainer">
+        <p>k = 0</p>
+        <div class="steps-buttons">
+            <input id="addStep" class="addStep btn btn-success" type="button" value="+"/>
+            <input type="button" class="minusStep btn btn-danger" value="-">
+        </div>
+        <table class="steps-table">
+            <tr>
+                <th>X</th>
+                <th>Прообразы X</th>                                   
+                <th>input(X)</th>
+                <th>output(X)</th>
+            </tr>
+            ${tableData}
+        </table>
+        <div class="maxFlow">
+            <span>E<sup>0</sup>(w):</span>
+            <input type='number' ${countInvalidNodesValue !== 0 || templateData.isZeroForwardPropagationDone === true ? "disabled" : ""} class='maxFlow-input' id="errorZero" value="${templateData.errorZero}"/>
+        </div>
+        <div class="next-table-step-buttons">
+            <input id="createBackpropagationTable" class="btn btn-info" type="button" value="Далее"/>
+        </div>
+    </div>`;
+
     return `
         <div class="lab">
             <div class="lab-table">
@@ -363,29 +385,9 @@ function getHTML(templateData) {
                 </div>
                 <div id="newGraph"></div>
                 <div class="steps">
-                    <p>k = 0</p>
-                    <div class="steps-buttons">
-                        <input id="addStep" class="addStep btn btn-success" type="button" value="+"/>
-                        <input type="button" class="minusStep btn btn-danger" value="-">
-                    </div>
-                    <table class="steps-table">
-                        <tr>
-                            <th>X</th>
-                            <th>Прообразы X</th>                                   
-                            <th>input(X)</th>
-                            <th>output(X)</th>
-                        </tr>
-                        ${tableData}
-                    </table>
-                    <div class="maxFlow">
-                        <span>E<sup>0</sup>(w):</span>
-                        <input type='number' ${countInvalidNodesValue !== 0 || templateData.isZeroForwardPropagationDone === true ? "disabled" : ""} class='maxFlow-input' id="errorZero" value="${templateData.errorZero}"/>
-                    </div>
-                    <div class="next-table-step-buttons">
-                        <input id="createBackpropagationTable" class="btn btn-info" type="button" value="Далее"/>
-                    </div>
-                    ${backpropagationContainer}
-                    ${firstForwardPropagationContainer}
+                    ${templateData.isZeroForwardPropagationDone === false && templateData.isBackpropagationDone === false && templateData.isFirstForwardPropagationDone === false ? zeroForwardPropagationContainer: ""}
+                    ${templateData.isZeroForwardPropagationDone === true && templateData.isFirstForwardPropagationDone === false && templateData.isBackpropagationDone === false ? backpropagationContainer: ""}
+                    ${templateData.isZeroForwardPropagationDone === true && templateData.isBackpropagationDone === true ? firstForwardPropagationContainer: ""}
                 </div>
                 <div class="lab-header">
                     <!-- Button trigger modal -->
@@ -404,6 +406,7 @@ function getHTML(templateData) {
                                 <p>Кликните на рисунке на очередную дугу, она выделится <b>красным цветом</b>. Заполните соответствующую ей строку. Для перехода к следующей строке нажмите кнопку «+», после этого обработанная алгоритмом дуга станет на рисунке <b>зелёной</b>. Для отмены текущей строки в таблице — кнопку «-». После того, как таблица будет заполнена полностью, нажмите кнопку <b>«Далее»</b>. Если нужно отменить заполненную таблицу и вернуться к предыдущей таблице, нажмите кнопук <b>«Назад»</b>.</p>                                
                                 <p>Заполните таблицу с входными и выходными сигналами нейронов в заданной НС по аналогии с предыдущей задачей. Посчитайте оценку решения после обучения и внесите ее в соответствующую ячейку. Нажмите кнопку в правом нижнем углу стенда <b>«Ответ готов»</b>.</p>
                                 <p>Если ячейки не кликаются для заполнения, то необходимо <b>свернуть и затем развернуть окно</b>.</p>
+                                <p>Округление E<sup>n</sup>(w) происходит <b>до 4-х знаков</b> после запятой.</p>
                           </div>
                         </div>
                       </div>
@@ -836,128 +839,134 @@ function bindActionListeners(appInstance)
         });
     }
 
-    document.getElementById("addStep").addEventListener('click', () => {
-        // обновляем стейт приложение
-        const state = appInstance.state.updateState((state) => {
-            if(state.currentSelectedNodeId && !isNaN(state.currentNeuronInputSignalValue) && !isNaN(state.currentNeuronOutputSignalValue))
-            {
-                let currentStep = state.currentStep;
-                let neuronsTableData = state.neuronsTableData.slice();
-                let nodesValue = state.nodesValue.slice();
-                let currentSelectedNodeIdNumber = state.currentSelectedNodeId.match(/(\d+)/)[0];
-                let currentNeuronInputSignalValue = state.currentNeuronInputSignalValue;
-                let currentNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
-
-                let prevSelectedNodeId = state.currentSelectedNodeId;
-                let prevNeuronInputSignalValue = state.currentNeuronInputSignalValue;
-                let prevNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
-                let prevNodeSection = state.currentNodeSection.slice();
-
-                if(currentNeuronInputSignalValue === "")
-                    currentNeuronInputSignalValue = 0;
-                if(currentNeuronOutputSignalValue === "")
-                    currentNeuronOutputSignalValue = 0;
-
-                if(neuronsTableData.length < state.inputNeuronsAmount && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue))
+    if(document.getElementById("addStep"))
+    {
+        document.getElementById("addStep").addEventListener('click', () => {
+            // обновляем стейт приложение
+            const state = appInstance.state.updateState((state) => {
+                if(state.currentSelectedNodeId && !isNaN(state.currentNeuronInputSignalValue) && !isNaN(state.currentNeuronOutputSignalValue))
                 {
-                    nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
-                    currentStep++;
-                    neuronsTableData.push({
-                        nodeId: state.currentSelectedNodeId,
-                        neuronInputSignalValue: currentNeuronInputSignalValue,
-                        neuronOutputSignalValue: currentNeuronOutputSignalValue,
-                        nodeSection: [],
-                    });
+                    let currentStep = state.currentStep;
+                    let neuronsTableData = state.neuronsTableData.slice();
+                    let nodesValue = state.nodesValue.slice();
+                    let currentSelectedNodeIdNumber = state.currentSelectedNodeId.match(/(\d+)/)[0];
+                    let currentNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+                    let currentNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+
+                    let prevSelectedNodeId = state.currentSelectedNodeId;
+                    let prevNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+                    let prevNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+                    let prevNodeSection = state.currentNodeSection.slice();
+
+                    if(currentNeuronInputSignalValue === "")
+                        currentNeuronInputSignalValue = 0;
+                    if(currentNeuronOutputSignalValue === "")
+                        currentNeuronOutputSignalValue = 0;
+
+                    if(neuronsTableData.length < state.inputNeuronsAmount && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue))
+                    {
+                        nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
+                        currentStep++;
+                        neuronsTableData.push({
+                            nodeId: state.currentSelectedNodeId,
+                            neuronInputSignalValue: currentNeuronInputSignalValue,
+                            neuronOutputSignalValue: currentNeuronOutputSignalValue,
+                            nodeSection: [],
+                        });
+                    }
+                    else if(state.currentSelectedNodeId.length > 0 && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue)
+                        && state.currentNodeSection.length > 0)
+                    {
+                        nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
+                        currentStep++;
+                        neuronsTableData.push({
+                            nodeId: state.currentSelectedNodeId,
+                            neuronInputSignalValue: currentNeuronInputSignalValue,
+                            neuronOutputSignalValue: currentNeuronOutputSignalValue,
+                            nodeSection: state.currentNodeSection,
+                        });
+                    }
+                    else
+                    {
+                        return {
+                            ...state,
+                        }
+                    }
+
+                    return  {
+                        ...state,
+                        currentStep,
+                        neuronsTableData,
+                        nodesValue,
+                        prevSelectedNodeId,
+                        prevNeuronInputSignalValue,
+                        prevNeuronOutputSignalValue,
+                        prevNodeSection,
+                        currentSelectedNodeId: "",
+                        currentNeuronInputSignalValue: "",
+                        currentNeuronOutputSignalValue: "",
+                        currentNodeSection: [],
+                        isSelectingNodesModeActivated: false,
+                    }
                 }
-                else if(state.currentSelectedNodeId.length > 0 && !isNaN(currentNeuronInputSignalValue) && !isNaN(currentNeuronOutputSignalValue)
-                    && state.currentNodeSection.length > 0)
-                {
-                    nodesValue[currentSelectedNodeIdNumber] = currentNeuronOutputSignalValue;
-                    currentStep++;
-                    neuronsTableData.push({
-                        nodeId: state.currentSelectedNodeId,
-                        neuronInputSignalValue: currentNeuronInputSignalValue,
-                        neuronOutputSignalValue: currentNeuronOutputSignalValue,
-                        nodeSection: state.currentNodeSection,
-                    });
-                }
-                else
-                {
+                else {
+                    alert("Сначала заполните все поля в строке таблицы!")
                     return {
                         ...state,
+                    }
+                }
+            });
+
+            // перересовываем приложение
+            appInstance.subscriber.emit('render', state);
+        });
+    }
+
+    if(document.getElementsByClassName("minusStep")[0])
+    {
+        document.getElementsByClassName("minusStep")[0].addEventListener('click', () => {
+            // обновляем стейт приложение
+            const state = appInstance.state.updateState((state) => {
+                if(state.currentStep > 0)
+                {
+                    let neuronsTableData = state.neuronsTableData.slice();
+                    let currentSelectedNodeIdNumber = Number(neuronsTableData[neuronsTableData.length - 1].nodeId.match(/(\d+)/)[0]);
+                    let currentNodeSection = neuronsTableData[neuronsTableData.length - 1].nodeSection;
+                    let currentNeuronInputSignalValue = neuronsTableData[neuronsTableData.length - 1].neuronInputSignalValue;
+                    let currentNeuronOutputSignalValue = neuronsTableData[neuronsTableData.length - 1].neuronOutputSignalValue;
+                    let currentSelectedNodeId = neuronsTableData[neuronsTableData.length - 1].nodeId;
+
+                    neuronsTableData.pop();
+                    let nodesValueCopy = state.nodesValue.slice();
+                    nodesValueCopy[currentSelectedNodeIdNumber] = null;
+                    let prevNeuronInputSignalValue = state.currentNeuronInputSignalValue;
+                    let prevNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
+                    let prevNodeSection = state.currentNodeSection;
+
+                    return  {
+                        ...state,
+                        neuronsTableData,
+                        prevNeuronInputSignalValue,
+                        prevNeuronOutputSignalValue,
+                        currentStep: state.currentStep - 1,
+                        currentSelectedNodeId,
+                        currentNeuronInputSignalValue,
+                        currentNeuronOutputSignalValue,
+                        currentNodeSection,
+                        isSelectingNodesModeActivated: false,
+                        nodesValue: nodesValueCopy,
                     }
                 }
 
                 return  {
                     ...state,
-                    currentStep,
-                    neuronsTableData,
-                    nodesValue,
-                    prevSelectedNodeId,
-                    prevNeuronInputSignalValue,
-                    prevNeuronOutputSignalValue,
-                    prevNodeSection,
-                    currentSelectedNodeId: "",
-                    currentNeuronInputSignalValue: "",
-                    currentNeuronOutputSignalValue: "",
-                    currentNodeSection: [],
-                    isSelectingNodesModeActivated: false,
                 }
-            }
-            else {
-                alert("Сначала заполните все поля в строке таблицы!")
-                return {
-                    ...state,
-                }
-            }
+            });
+
+            // перересовываем приложение
+            appInstance.subscriber.emit('render', state);
         });
-
-        // перересовываем приложение
-        appInstance.subscriber.emit('render', state);
-    });
-
-    document.getElementsByClassName("minusStep")[0].addEventListener('click', () => {
-        // обновляем стейт приложение
-        const state = appInstance.state.updateState((state) => {
-            if(state.currentStep > 0)
-            {
-                let neuronsTableData = state.neuronsTableData.slice();
-                let currentSelectedNodeIdNumber = Number(neuronsTableData[neuronsTableData.length - 1].nodeId.match(/(\d+)/)[0]);
-                let currentNodeSection = neuronsTableData[neuronsTableData.length - 1].nodeSection;
-                let currentNeuronInputSignalValue = neuronsTableData[neuronsTableData.length - 1].neuronInputSignalValue;
-                let currentNeuronOutputSignalValue = neuronsTableData[neuronsTableData.length - 1].neuronOutputSignalValue;
-                let currentSelectedNodeId = neuronsTableData[neuronsTableData.length - 1].nodeId;
-
-                neuronsTableData.pop();
-                let nodesValueCopy = state.nodesValue.slice();
-                nodesValueCopy[currentSelectedNodeIdNumber] = null;
-                let prevNeuronInputSignalValue = state.currentNeuronInputSignalValue;
-                let prevNeuronOutputSignalValue = state.currentNeuronOutputSignalValue;
-                let prevNodeSection = state.currentNodeSection;
-
-                return  {
-                    ...state,
-                    neuronsTableData,
-                    prevNeuronInputSignalValue,
-                    prevNeuronOutputSignalValue,
-                    currentStep: state.currentStep - 1,
-                    currentSelectedNodeId,
-                    currentNeuronInputSignalValue,
-                    currentNeuronOutputSignalValue,
-                    currentNodeSection,
-                    isSelectingNodesModeActivated: false,
-                    nodesValue: nodesValueCopy,
-                }
-            }
-
-            return  {
-                ...state,
-            }
-        });
-
-        // перересовываем приложение
-        appInstance.subscriber.emit('render', state);
-    });
+    }
 
     document.getElementsByClassName('redrawGraph')[0].addEventListener('click', () => {
         const state = appInstance.state.updateState((state) => {
@@ -1496,11 +1505,23 @@ function init_lab() {
         getCondition: function () {
         },
         getResults: function () {
+            //todo чёто ругается на объект этот
             let result = {...appInstance.state.getState()};
-            delete result.edgeWeight;
-            console.log('getResults', result);
+            let normObject = {
+                error: result.error,
+                errorZero: result.errorZero,
+                neuronsTableData: result.neuronsTableData,
+                edgesTableData: result.edgesTableData,
+                firstPropagationNeuronsTableData: result.firstPropagationNeuronsTableData,
+            };
+
+            let resultStr = JSON.stringify(normObject);
+            resultStr = resultStr.replaceAll("&#0045;", "-");
+
+            console.log('getResults', normObject);
+            console.log('resultStr', resultStr);
             deleteCookie('state');
-            return JSON.stringify(result);
+            return resultStr;
         },
         calculateHandler: function (text, code) {
         },

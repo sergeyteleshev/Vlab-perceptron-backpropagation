@@ -119,9 +119,9 @@ public class GenerateProcessorImpl implements GenerateProcessor {
             text.append("&#951; = ").append(learningRate).append(", &#9082; = 0.3, k-max = 1");
 
             //раскомментить, чтобы увидеь ответ в описании лабы
-//            initialGraphMSE = doubleToTwoDecimal(countMSE(jsonNodesValue));
-//            JSONObject backpropagationAnswer = backpropagation(nodesValue, edgeWeight);
-//            text = new StringBuilder("Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = " + Double.toString(initialGraphMSE) + " " + backpropagationAnswerToReadble(backpropagationAnswer));
+//            double initialGraphMSE = doubleToTwoDecimal(countMSE(new JSONArray(getSignalWithNewEdges(nodes,edges,edgeWeight,nodesValue, sigmoidFunction))));
+//            JSONObject backpropagationAnswer = backpropagation(getSignalWithNewEdges(nodes,edges,edgeWeight,nodesValue, sigmoidFunction), edgeWeight, learningRate, alpha);
+//            text.append("Найдите веса рёбер графа при помощи метода обратного распространения и посчитайте новый MSE. Текущее MSE = ").append(Double.toString(initialGraphMSE)).append(" ").append(backpropagationAnswerToReadble(backpropagationAnswer));
         }
         catch (Exception e)
         {

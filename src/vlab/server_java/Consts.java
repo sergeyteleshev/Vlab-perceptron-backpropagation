@@ -37,7 +37,7 @@ public class Consts
     public static final String tgFunction = "гиперболический тангенс";
     public static final String[] activationFunctions = {sigmoidFunction, linearFunction, tgFunction};
     public static final int roundEdgeWeightSign = 1;
-    public static final int roundNodesValueSign = 2;
+    public static final int roundNodesValueSign = 1;
     public static final double minEdgeValue = -1;
     public static final double maxEdgeValue = 1;
 

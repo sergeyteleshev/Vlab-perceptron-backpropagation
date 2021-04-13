@@ -34,7 +34,8 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             String code = generatingResult.getCode();
 
             JSONObject jsonCode = new JSONObject(code);
-            JSONObject jsonInstructions = new JSONObject(instructions);
+            //вместо минуса на серверах de добавляется html-код знака минус. объективно мать ебал человека, который такую хуйню сделал
+            JSONObject jsonInstructions = new JSONObject(instructions.replaceAll("&#0045;","-"));
 
             JSONArray nodes = jsonCode.getJSONArray("nodes");
             JSONArray edges = jsonCode.getJSONArray("edges");
@@ -92,7 +93,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
             //MSE до МОР
             JSONArray outputNeuronsValueBeforeBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
-            double serverErrorZero = countMSE(outputNeuronsValueBeforeBackPropagation);
+            double serverErrorZero = roundDoubleToNDecimals(countMSE(outputNeuronsValueBeforeBackPropagation), 4);
 
             if (serverErrorZero >= clientErrorZero - mseEpsilon && serverErrorZero <= clientErrorZero + mseEpsilon)
                 points += Consts.errorPoints;
@@ -101,7 +102,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
             //Новое MSE после выполнения МОР
             JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
-            double newError = countMSE(outputNeuronsValueAfterBackPropagation);
+            double newError = roundDoubleToNDecimals(countMSE(outputNeuronsValueAfterBackPropagation), 4);
 
             if (newError >= error - mseEpsilon && newError <= error + mseEpsilon)
                 points += Consts.errorPoints;
@@ -205,7 +206,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                comment.append("Неверное значение input(X").append(i).append("). sys = ").append(sortedServerAnswer.getJSONObject(i).getDouble("neuronInputSignalValue")).append("; usr = ").append(sortedClientAnswer.getJSONObject(i).getDouble("neuronInputSignalValue")).append(". ");
+                comment.append("Неверное значение input(X").append(i).append("): sys = ").append(sortedServerAnswer.getJSONObject(i).getDouble("neuronInputSignalValue")).append("; usr = ").append(sortedClientAnswer.getJSONObject(i).getDouble("neuronInputSignalValue")).append(". ");
             }
 
             //равны выходные значения сигнала на конкретный нейрон в рамках окрестности
@@ -219,7 +220,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                comment.append("Неверное значение output(X").append(i).append("). sys = ").append(sortedServerAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue")).append("; usr = ").append(sortedClientAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue")).append(". ");
+                comment.append("Неверное значение output(X").append(i).append("): sys = ").append(sortedServerAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue")).append("; usr = ").append(sortedClientAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue")).append(". ");
             }
 
             //если правильно в графе выделил нейроны, из которых сигнал течёт в текущий нейрон по таблице
@@ -229,7 +230,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                comment.append("Неверно выделены дуги, входящие в нейрон X").append(sortedClientAnswer.getJSONObject(i).getString("nodeId")).append(". ");
+                comment.append("Неверно выделены прооборазы нейрона X").append(sortedClientAnswer.getJSONObject(i).getString("nodeId").substring(1)).append(". ");
             }
 
             if(isNeuronInputSignalValueCorrect)
@@ -278,7 +279,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 }
             }
 
-            nodeInputSignal = roundDoubleToNDecimals(nodeInputSignal, roundNodesValueSign);
+            nodeInputSignal = roundDoubleToNDecimals(nodeInputSignal, 2);
             currentInputSignalValues[i] = nodeInputSignal;
 
             switch (activationFunction) {
@@ -293,7 +294,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                     break;
             }
 
-            nodeOutputSignal = roundDoubleToNDecimals(nodeOutputSignal, roundNodesValueSign);
+            nodeOutputSignal = roundDoubleToNDecimals(nodeOutputSignal, 2);
 
             currentNodesValue[i] = nodeOutputSignal;
         }
@@ -322,7 +323,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 }
             }
 
-            nodeInputSignal = roundDoubleToNDecimals(nodeInputSignal, roundNodesValueSign);
+            nodeInputSignal = roundDoubleToNDecimals(nodeInputSignal, 2);
 
             switch (activationFunction) {
                 case sigmoidFunction:
@@ -336,7 +337,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                     break;
             }
 
-            nodeOutputSignal = roundDoubleToNDecimals(nodeOutputSignal, roundNodesValueSign);
+            nodeOutputSignal = roundDoubleToNDecimals(nodeOutputSignal, 2);
 
             currentNodesValue[i] = nodeOutputSignal;
         }
@@ -519,7 +520,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                comment.append("Неверно рассчитана дельта нейрона ").append(Integer.toString(nodeToIndex)).append(": ").append("sys = ").append(serverDelta[nodeToIndex]).append("; user = ").append(clientDelta).append(". ");
+                comment.append("Неверно рассчитана дельта нейрона X").append(Integer.toString(nodeToIndex)).append(": ").append("sys = ").append(serverDelta[nodeToIndex]).append("; user = ").append(clientDelta).append(". ");
             }
 
             if(clientNewW >= serverNewW[nodeFromIndex][nodeToIndex] - WEpsilon && clientNewW <= serverNewW[nodeFromIndex][nodeToIndex] + WEpsilon)
@@ -555,7 +556,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                comment.append("Неверно рассчитана дельта дуги (").append(Integer.toString(nodeFromIndex)).append(", ").append(Integer.toString(nodeToIndex)).append(") на первой итерации: ").append(") sys = ").append(serverDeltaW[nodeFromIndex][nodeToIndex]).append("; user = ").append(clientDeltaW).append(". ");
+                comment.append("Неверно рассчитана дельта дуги (").append(Integer.toString(nodeFromIndex)).append(", ").append(Integer.toString(nodeToIndex)).append(") на первой итерации: ").append("sys = ").append(serverDeltaW[nodeFromIndex][nodeToIndex]).append("; user = ").append(clientDeltaW).append(". ");
             }
 
             if(clientGrad >= serverGrad[nodeFromIndex][nodeToIndex] - gradEpsilon && clientGrad <= serverGrad[nodeFromIndex][nodeToIndex] + gradEpsilon)
@@ -579,7 +580,6 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
     private static JSONObject compareBackpropagationAnswersNotWorking(JSONObject serverAnswer, JSONObject clientAnswer, double pointPercent)
     {
-        //todo сделать норм оценку
         int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
         double points = 0;
         JSONObject result = new JSONObject();
@@ -633,7 +633,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 }
                 else
                 {
-                    comment.append("Неверно рассчитана дельта нейрона ").append(Integer.toString(i)).append(": ").append("sys = ").append(serverDelta[i]).append("; user = ").append(clientDelta[i]).append(". ");
+                    comment.append("Неверно рассчитана дельта нейрона X").append(Integer.toString(i)).append(": ").append("sys = ").append(serverDelta[i]).append("; user = ").append(clientDelta[i]).append(". ");
                 }
 
                 for (int j = 0; j < nodesAmount; j++)
@@ -793,7 +793,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             {
                 for(int j = 0; j < connectedNeurons.size(); j++)
                 {
-                    delta[i] = doubleToTwoDecimal(((1 - neuronOutputSignalValue[i]) * neuronOutputSignalValue[i]) * edgesWeight[i][connectedNeurons.get(j)] * delta[connectedNeurons.get(j)]);
+                    delta[i] += doubleToTwoDecimal(((1 - neuronOutputSignalValue[i]) * neuronOutputSignalValue[i]) * edgesWeight[i][connectedNeurons.get(j)] * delta[connectedNeurons.get(j)]);
                     grad[i][connectedNeurons.get(j)] = doubleToTwoDecimal(neuronOutputSignalValue[i] * delta[connectedNeurons.get(j)]);
                     deltaW[i][connectedNeurons.get(j)] = doubleToTwoDecimal(learningRate * grad[i][connectedNeurons.get(j)]);
                     edgesWeight[i][connectedNeurons.get(j)] += doubleToTwoDecimal(deltaW[i][connectedNeurons.get(j)]);

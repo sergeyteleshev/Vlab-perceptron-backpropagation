@@ -348,7 +348,7 @@
     width: 100%;
 }
 
-#jsLab .firstForwardContainer p
+#jsLab .firstForwardContainer p, #jsLab .zeroForwardPropagationContainer p
 {
     text-align: left;
     margin-top: 20px;
@@ -400,4 +400,9 @@
 #jsLab #newGraph div
 {
     padding-right: 100%;
+}
+
+#jsLab .zeroForwardPropagationContainer
+{
+    width: 100%;
 }
