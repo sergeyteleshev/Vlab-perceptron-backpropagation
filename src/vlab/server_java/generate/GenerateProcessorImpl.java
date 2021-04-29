@@ -50,15 +50,23 @@ public class GenerateProcessorImpl implements GenerateProcessor {
 
             JSONObject randomGraph = generateVariant(sigmoidFunction);
 
-            double[][] edgeWeight = (double[][]) randomGraph.get("edgeWeight");
-            int[][] edges = (int[][]) randomGraph.get("edges");
-            int[] nodes = (int[]) randomGraph.get("nodes");
-            double[] nodesValue = (double[]) randomGraph.get("nodesValue");
-            int[] nodesLevel = (int[]) randomGraph.get("nodesLevel");
+//        double[][] edgeWeight = (double[][]) randomGraph.get("edgeWeight");
+        int[][] edges = (int[][]) randomGraph.get("edges");
+        int[] nodes = (int[]) randomGraph.get("nodes");
+        double[] nodesValue = (double[]) randomGraph.get("nodesValue");
+        int[] nodesLevel = (int[]) randomGraph.get("nodesLevel");
 
-            // для теста
-//            int inputNeuronsAmount = 2;
-//            int outputNeuronsAmount = 1;
+        double[][] edgeWeight = {
+                {0,0,0.9,0.7,0},
+                {0,0,0.6,0.6,0},
+                {0,0,0,0,-0.9},
+                {0,0,0,0,-0.5},
+                {0,0,0,0,0},
+        };
+
+        // для теста
+//        int inputNeuronsAmount = 2;
+//        int outputNeuronsAmount = 1;
 //
 //            int amountOfHiddenLayers = 1;
 //            int amountOfNodesInHiddenLayer = 2;
