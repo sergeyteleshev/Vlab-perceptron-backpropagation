@@ -9,6 +9,7 @@ import rlcp.server.processor.check.PreCheckResultAwareCheckProcessor;
 import vlab.server_java.Consts;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 import static vlab.server_java.Consts.*;
@@ -26,74 +27,101 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         //do check logic here
         double points = 0;
         String comment = "";
+        BigDecimal pointsToDe = new BigDecimal(0);
 
-        String code = generatingResult.getCode();
+        try
+        {
+            String code = generatingResult.getCode();
 
-        JSONObject jsonCode = new JSONObject(code);
-        JSONObject jsonInstructions = new JSONObject(instructions);
+            JSONObject jsonCode = new JSONObject(code);
+            //вместо минуса на серверах de добавляется html-код знака минус. объективно мать ебал человека, который такую хуйню сделал
+            JSONObject jsonInstructions = new JSONObject(instructions.replaceAll("&#0045;","-"));
 
-        JSONArray nodes = jsonCode.getJSONArray("nodes");
-        JSONArray edges = jsonCode.getJSONArray("edges");
+            JSONArray nodes = jsonCode.getJSONArray("nodes");
+            JSONArray edges = jsonCode.getJSONArray("edges");
 
-        double error = jsonInstructions.getDouble("error");
-        double clientErrorZero = jsonInstructions.getDouble("errorZero");
-        JSONArray edgeWeight = jsonCode.getJSONArray("edgeWeight");
-        JSONArray nodesValue = jsonCode.getJSONArray("nodesValue");
-        double learningRate = jsonCode.getDouble("learningRate");
+            double error = jsonInstructions.getDouble("error");
+            double clientErrorZero = jsonInstructions.getDouble("errorZero");
+            JSONArray edgeWeight = jsonCode.getJSONArray("edgeWeight");
+            JSONArray nodesValue = jsonCode.getJSONArray("nodesValue");
+            double learningRate = jsonCode.getDouble("learningRate");
+            double alpha = jsonCode.getDouble("alpha");
 
-        JSONArray serverAnswerZeroForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, edgeWeight, sigmoidFunction));
+            JSONArray serverAnswerZeroForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, edgeWeight, sigmoidFunction));
 
-        JSONArray clientAnswerZeroForwardPropagation = jsonInstructions.getJSONArray("neuronsTableData");
+            JSONArray clientAnswerZeroForwardPropagation = jsonInstructions.getJSONArray("neuronsTableData");
 
-        JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
-        JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValue), twoDimensionalJsonArrayToDouble(edgeWeight), learningRate);
+            JSONArray nodesValueFull = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
+            JSONArray clientAnswerBackpropagation = jsonInstructions.getJSONArray("edgesTableData");
+            JSONObject backpropagationAnswer = backpropagation(oneDimensionalJsonArrayToDouble(nodesValueFull), twoDimensionalJsonArrayToDouble(edgeWeight), learningRate, alpha);
 
-        backpropagationAnswer.put("wijZero", edgeWeight);
-        backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);
+            backpropagationAnswer.put("wijZero", edgeWeight);
+            backpropagationAnswer.put("deltaWijZero", new double[edgeWeight.length()][edgeWeight.length()]);
 
-        JSONArray clientAnswerFirstForwardPropagation = jsonInstructions.getJSONArray("firstPropagationNeuronsTableData");
-        JSONArray serverAnswerFirstForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, new JSONArray(backpropagationAnswer.get("newW")), sigmoidFunction));
+            JSONArray clientAnswerFirstForwardPropagation = jsonInstructions.getJSONArray("firstPropagationNeuronsTableData");
+            JSONArray serverAnswerFirstForwardPropagation = jsonObjectToJsonArray(generateRightAnswerForwardPropagation(nodes, edges, nodesValue, new JSONArray(backpropagationAnswer.get("newW")), sigmoidFunction));
 
-        //проверка результатов
-        JSONObject zeroForwardPropagationCompareResult = compareAnswersForwardPropagation(serverAnswerZeroForwardPropagation, clientAnswerZeroForwardPropagation, zeroForwardPropagationPoints);
-        double zeroForwardComparePoints = zeroForwardPropagationCompareResult.getDouble("points");
-        String zeroForwardCompareComment = zeroForwardPropagationCompareResult.getString("comment");
-        points += zeroForwardComparePoints;
-        comment += zeroForwardCompareComment;
+            //проверка результатов
+            JSONObject zeroForwardPropagationCompareResult = compareAnswersForwardPropagation(serverAnswerZeroForwardPropagation, clientAnswerZeroForwardPropagation, zeroForwardPropagationPoints);
+            double zeroForwardComparePoints = zeroForwardPropagationCompareResult.getDouble("points");
+            String zeroForwardCompareComment = zeroForwardPropagationCompareResult.getString("comment");
+            points += zeroForwardComparePoints;
+            if(zeroForwardCompareComment.length() > 0)
+                comment += "ТАБЛИЦА СИГНАЛОВ НЕЙРОНОВ ДО МОР: ";
 
-        JSONObject backpropagationCompareResult = compareBackpropagationAnswers(backpropagationAnswer, clientAnswerBackpropagation, twoDimensionalJsonArrayToInt(edges), Consts.backpropagationTablePoints);
-        double backpropagationComparePoints = backpropagationCompareResult.getDouble("points");
-        String backpropagationCompareComment = backpropagationCompareResult.getString("comment");
-        comment += backpropagationCompareComment;
-        points += backpropagationComparePoints;
+            comment += zeroForwardCompareComment;
 
-        JSONObject firstForwardPropagationCompareResult = compareAnswersForwardPropagation(serverAnswerFirstForwardPropagation, clientAnswerFirstForwardPropagation, firstForwardPropagationPoints);
-        double firstForwardComparePoints = firstForwardPropagationCompareResult.getDouble("points");
-        String firstForwardCompareComment = firstForwardPropagationCompareResult.getString("comment");
-        points += firstForwardComparePoints;
-        comment += firstForwardCompareComment;
+            JSONObject backpropagationCompareResult = compareBackpropagationAnswers(backpropagationAnswer, clientAnswerBackpropagation, twoDimensionalJsonArrayToInt(edges), Consts.backpropagationTablePoints);
+            double backpropagationComparePoints = backpropagationCompareResult.getDouble("points");
+            String backpropagationCompareComment = backpropagationCompareResult.getString("comment");
 
-        //MSE до МОР
-        JSONArray outputNeuronsValueBeforeBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
-        double serverErrorZero = countMSE(outputNeuronsValueBeforeBackPropagation);
+            if(backpropagationCompareComment.length() > 0)
+                comment += "ТАБЛИЦА МОР: ";
 
-        if (serverErrorZero >= clientErrorZero - mseEpsilon && serverErrorZero <= clientErrorZero + mseEpsilon)
-            points += Consts.errorPoints;
-        else
-            comment += "Неверно посчитанно MSE исходного графа. MSE = " + roundDoubleToNDecimals(serverErrorZero, 4) + ". ";
+            comment += backpropagationCompareComment;
+            points += backpropagationComparePoints;
 
-        //Новое MSE после выполнения МОР
-        JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
-        double newError = countMSE(outputNeuronsValueAfterBackPropagation);
+            JSONObject firstForwardPropagationCompareResult = compareAnswersForwardPropagation(serverAnswerFirstForwardPropagation, clientAnswerFirstForwardPropagation, firstForwardPropagationPoints);
+            double firstForwardComparePoints = firstForwardPropagationCompareResult.getDouble("points");
+            String firstForwardCompareComment = firstForwardPropagationCompareResult.getString("comment");
 
-        if (newError >= error - mseEpsilon && newError <= error + mseEpsilon)
-            points += Consts.errorPoints;
-        else
-            comment += "Неверно посчитанно MSE после МОР. MSE = " + roundDoubleToNDecimals(newError, 4) + ". ";
+            if(firstForwardCompareComment.length() > 0)
+                comment += "ТАБЛИЦА СИГНАЛОВ НЕЙРОНОВ ПОСЛЕ МОР: ";
 
-        points = doubleToTwoDecimal(points);
+            points += firstForwardComparePoints;
+            comment += firstForwardCompareComment;
 
-        return new CheckingSingleConditionResult(BigDecimal.valueOf(points), comment);
+            //MSE до МОР
+            JSONArray outputNeuronsValueBeforeBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, edgeWeight, nodesValue);
+            double serverErrorZero = roundDoubleToNDecimals(countMSE(outputNeuronsValueBeforeBackPropagation), 4);
+
+            if (serverErrorZero >= clientErrorZero - mseEpsilon && serverErrorZero <= clientErrorZero + mseEpsilon)
+                points += Consts.errorPoints;
+            else
+                comment += "Неверно посчитанно E0(w): E0(w) = " + serverErrorZero + ". ";
+
+            //Новое MSE после выполнения МОР
+            JSONArray outputNeuronsValueAfterBackPropagation = getSignalWithNewEdgesJsonArrays(nodes, edges, new JSONArray(backpropagationAnswer.get("newW")), nodesValue);
+            double newError = roundDoubleToNDecimals(countMSE(outputNeuronsValueAfterBackPropagation), 4);
+
+            if (newError >= error - mseEpsilon && newError <= error + mseEpsilon)
+                points += Consts.errorPoints;
+            else
+                comment += "Неверно посчитанно E1(w) после МОР. E1(w) = " + newError + ". ";
+
+            //на всякий проверка вдруг посчиталось баллов больше и поэтому крашится на самом de лаба
+            if (points > 1)
+                points = 1.0;
+
+            pointsToDe = new BigDecimal(points);
+            pointsToDe = pointsToDe.setScale(2, RoundingMode.HALF_DOWN);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return new CheckingSingleConditionResult(pointsToDe, comment);
     }
 
     private static JSONArray sortJsonArrays(String jsonArrStr, String KEY_NAME)
@@ -178,7 +206,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                comment.append("Неверное значение input(X").append(i).append("). sys = ").append(sortedServerAnswer.getJSONObject(i).getDouble("neuronInputSignalValue")).append("; usr = ").append(sortedClientAnswer.getJSONObject(i).getDouble("neuronInputSignalValue")).append(". ");
+                comment.append("Неверное значение input(X").append(i).append("): sys = ").append(sortedServerAnswer.getJSONObject(i).getDouble("neuronInputSignalValue")).append("; usr = ").append(sortedClientAnswer.getJSONObject(i).getDouble("neuronInputSignalValue")).append(". ");
             }
 
             //равны выходные значения сигнала на конкретный нейрон в рамках окрестности
@@ -192,7 +220,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                comment.append("Неверное значение output(X").append(i).append("). sys = ").append(sortedServerAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue")).append("; usr = ").append(sortedClientAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue")).append(". ");
+                comment.append("Неверное значение output(X").append(i).append("): sys = ").append(sortedServerAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue")).append("; usr = ").append(sortedClientAnswer.getJSONObject(i).getDouble("neuronOutputSignalValue")).append(". ");
             }
 
             //если правильно в графе выделил нейроны, из которых сигнал течёт в текущий нейрон по таблице
@@ -202,7 +230,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                comment.append("Неверно выделены дуги, входящие в нейрон X").append(sortedClientAnswer.getJSONObject(i).getString("nodeId")).append(". ");
+                comment.append("Неверно выделены прооборазы нейрона X").append(sortedClientAnswer.getJSONObject(i).getString("nodeId").substring(1)).append(". ");
             }
 
             if(isNeuronInputSignalValueCorrect)
@@ -251,7 +279,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 }
             }
 
-            nodeInputSignal = roundDoubleToNDecimals(nodeInputSignal, roundNodesValueSign);
+            nodeInputSignal = roundDoubleToNDecimals(nodeInputSignal, 2);
             currentInputSignalValues[i] = nodeInputSignal;
 
             switch (activationFunction) {
@@ -266,7 +294,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                     break;
             }
 
-            nodeOutputSignal = roundDoubleToNDecimals(nodeOutputSignal, roundNodesValueSign);
+            nodeOutputSignal = roundDoubleToNDecimals(nodeOutputSignal, 2);
 
             currentNodesValue[i] = nodeOutputSignal;
         }
@@ -295,7 +323,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 }
             }
 
-            nodeInputSignal = roundDoubleToNDecimals(nodeInputSignal, roundNodesValueSign);
+            nodeInputSignal = roundDoubleToNDecimals(nodeInputSignal, 2);
 
             switch (activationFunction) {
                 case sigmoidFunction:
@@ -309,7 +337,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                     break;
             }
 
-            nodeOutputSignal = roundDoubleToNDecimals(nodeOutputSignal, roundNodesValueSign);
+            nodeOutputSignal = roundDoubleToNDecimals(nodeOutputSignal, 2);
 
             currentNodesValue[i] = nodeOutputSignal;
         }
@@ -492,7 +520,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                comment.append("Неверно рассчитана дельта нейрона ").append(Integer.toString(nodeToIndex)).append(": ").append("sys = ").append(serverDelta[nodeToIndex]).append("; user = ").append(clientDelta).append(". ");
+                comment.append("Неверно рассчитана дельта нейрона X").append(Integer.toString(nodeToIndex)).append(": ").append("sys = ").append(serverDelta[nodeToIndex]).append("; user = ").append(clientDelta).append(". ");
             }
 
             if(clientNewW >= serverNewW[nodeFromIndex][nodeToIndex] - WEpsilon && clientNewW <= serverNewW[nodeFromIndex][nodeToIndex] + WEpsilon)
@@ -528,7 +556,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             }
             else
             {
-                comment.append("Неверно рассчитана дельта дуги (").append(Integer.toString(nodeFromIndex)).append(", ").append(Integer.toString(nodeToIndex)).append(") на первой итерации: ").append(") sys = ").append(serverDeltaW[nodeFromIndex][nodeToIndex]).append("; user = ").append(clientDeltaW).append(". ");
+                comment.append("Неверно рассчитана дельта дуги (").append(Integer.toString(nodeFromIndex)).append(", ").append(Integer.toString(nodeToIndex)).append(") на первой итерации: ").append("sys = ").append(serverDeltaW[nodeFromIndex][nodeToIndex]).append("; user = ").append(clientDeltaW).append(". ");
             }
 
             if(clientGrad >= serverGrad[nodeFromIndex][nodeToIndex] - gradEpsilon && clientGrad <= serverGrad[nodeFromIndex][nodeToIndex] + gradEpsilon)
@@ -552,7 +580,6 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
 
     private static JSONObject compareBackpropagationAnswersNotWorking(JSONObject serverAnswer, JSONObject clientAnswer, double pointPercent)
     {
-        //todo сделать норм оценку
         int nodesAmount = Consts.inputNeuronsAmount + Consts.outputNeuronsAmount + Consts.amountOfHiddenLayers * Consts.amountOfNodesInHiddenLayer;
         double points = 0;
         JSONObject result = new JSONObject();
@@ -606,7 +633,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
                 }
                 else
                 {
-                    comment.append("Неверно рассчитана дельта нейрона ").append(Integer.toString(i)).append(": ").append("sys = ").append(serverDelta[i]).append("; user = ").append(clientDelta[i]).append(". ");
+                    comment.append("Неверно рассчитана дельта нейрона X").append(Integer.toString(i)).append(": ").append("sys = ").append(serverDelta[i]).append("; user = ").append(clientDelta[i]).append(". ");
                 }
 
                 for (int j = 0; j < nodesAmount; j++)
@@ -737,13 +764,12 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
         return result;
     }
 
-    public static JSONObject backpropagation(double[] neuronOutputSignalValue, double[][] edgesWeight, double learningRate)
+    public static JSONObject backpropagation(double[] neuronOutputSignalValue, double[][] edgesWeight, double learningRate, double alpha)
     {
         JSONObject result = new JSONObject();
         double[] delta = new double[neuronOutputSignalValue.length];
         double[][] grad = new double[edgesWeight.length][edgesWeight.length];
         double[][] deltaW = new double[edgesWeight.length][edgesWeight.length];
-        double A = 0.3;
 
         for(int i = neuronOutputSignalValue.length - 1; i >= 0; i--)
         {
@@ -767,7 +793,7 @@ public class CheckProcessorImpl implements PreCheckResultAwareCheckProcessor<Str
             {
                 for(int j = 0; j < connectedNeurons.size(); j++)
                 {
-                    delta[i] = doubleToTwoDecimal(((1 - neuronOutputSignalValue[i]) * neuronOutputSignalValue[i]) * edgesWeight[i][connectedNeurons.get(j)] * delta[connectedNeurons.get(j)]);
+                    delta[i] += doubleToTwoDecimal(((1 - neuronOutputSignalValue[i]) * neuronOutputSignalValue[i]) * edgesWeight[i][connectedNeurons.get(j)] * delta[connectedNeurons.get(j)]);
                     grad[i][connectedNeurons.get(j)] = doubleToTwoDecimal(neuronOutputSignalValue[i] * delta[connectedNeurons.get(j)]);
                     deltaW[i][connectedNeurons.get(j)] = doubleToTwoDecimal(learningRate * grad[i][connectedNeurons.get(j)]);
                     edgesWeight[i][connectedNeurons.get(j)] += doubleToTwoDecimal(deltaW[i][connectedNeurons.get(j)]);
